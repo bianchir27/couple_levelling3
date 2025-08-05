@@ -49,6 +49,8 @@
         .notification-dot { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; display: none; }
         .report-card { background: linear-gradient(145deg, #2d2d2d, #1a1a1a); border: 2px solid #facc15; box-shadow: 0 0 20px rgba(250, 204, 21, 0.3); }
         .report-stat { background-color: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.5rem; text-align: center; }
+        .xp-bar-container { background-color: #374151; border-radius: 9999px; overflow: hidden; height: 10px; }
+        .xp-bar { background-color: #facc15; height: 100%; transition: width 0.5s ease-in-out; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -76,7 +78,7 @@
         <header class="text-center mb-6">
             <h1 class="text-4xl md:text-6xl font-cinzel font-bold text-yellow-300" style="text-shadow: 0 0 10px #facc15, 0 0 20px #facc15;">Couple Levelling</h1>
             <p id="campaign-id-display" class="text-sm font-mono text-gray-500 mt-2 cursor-pointer" title="Clique para copiar"></p>
-            <p id="viewing-player-display" class="text-sm text-gray-400 mt-1"></p>
+            <p id="viewing-player-display" class="text-sm text-gray-400 mt-1 cursor-pointer hover:text-yellow-300 transition" title="Clique para trocar de jogador"></p>
         </header>
 
         <nav class="flex justify-center border-b border-gray-700 mb-8 text-sm md:text-base">
@@ -91,21 +93,13 @@
             <!-- Conteúdo das abas -->
             <div id="dashboard" class="tab-content active">
                 <section id="main-dashboard" class="card rounded-lg p-6 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center shadow-lg">
-                    <div>
-                        <h2 id="player1NameDisplay" class="text-2xl font-cinzel text-blue-400">Herói 1</h2>
-                        <p id="player1CE" class="text-4xl font-bold">0 CE</p>
-                        <button id="vetoPlayer1" class="btn btn-veto rounded-md px-4 py-2 mt-2 text-sm w-full">Usar Carta Veto</button>
-                    </div>
+                    <div id="player1-dashboard-card"></div>
                     <div class="border-t-2 md:border-t-0 md:border-x-2 border-gray-600 px-6">
                         <h2 class="text-2xl font-cinzel text-yellow-400">Tesouro da Sincronia</h2>
                         <p id="totalCE" class="text-2xl font-bold">Total: 0 CE</p>
                         <p id="treasureValue" class="text-5xl font-bold text-green-400" style="text-shadow: 0 0 8px #4ade80;">R$ 0,00</p>
                     </div>
-                    <div>
-                        <h2 id="player2NameDisplay" class="text-2xl font-cinzel text-red-400">Heroína 2</h2>
-                        <p id="player2CE" class="text-4xl font-bold">0 CE</p>
-                        <button id="vetoPlayer2" class="btn btn-veto rounded-md px-4 py-2 mt-2 text-sm w-full">Usar Carta Veto</button>
-                    </div>
+                    <div id="player2-dashboard-card"></div>
                 </section>
 
                 <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -236,7 +230,7 @@
                 { id: 'gym', name: '🏋️ A Forja do Corpo', description: 'Treino na academia.', type: 'options', options: [
                     { label: 'Treino em Casal', value: 25 }, { label: 'Treino Individual', value: 20 }, { label: 'Faltou ao Treino', value: -40 }
                 ], trackStreak: true},
-                { id: 'study', name: '� O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
+                { id: 'study', name: '📚 O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
                 { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Ceder à tentação.', value: -40, type: 'simple', trackStreak: true }
             ],
             secondary: [
@@ -286,11 +280,18 @@
                 }
             });
             return {
-                player1: { name: 'Herói 1', ce: 0, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
-                player2: { name: 'Heroína 2', ce: 0, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
+                player1: { name: 'Herói 1', ce: 0, xp: 0, level: 1, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
+                player2: { name: 'Heroína 2', ce: 0, xp: 0, level: 1, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
                 log: [],
                 messages: [],
-                settings: { conversionRate: 3, missions: missionSettings }
+                settings: { 
+                    conversionRate: 4, 
+                    missions: missionSettings,
+                    titles: {
+                        player1: { 1: "Iniciante", 3: "Meio Divo", 6: "Divo Divinho", 9: "Divo Divônico", 12: "Soberano da Rotina" },
+                        player2: { 1: "Iniciante", 3: "Meia Diva", 6: "Diva Divinha", 9: "Diva Divônica", 12: "Soberana da Rotina" }
+                    }
+                }
             };
         }
 
@@ -308,20 +309,13 @@
 
         function updateUI() {
             if (!gameState || !gameState.player1) return;
-            DOM.player1NameDisplay.textContent = gameState.player1.name;
-            DOM.player2NameDisplay.textContent = gameState.player2.name;
-            DOM.player1CE.textContent = `${parseFloat(gameState.player1.ce.toFixed(2))} CE`;
-            DOM.player2CE.textContent = `${parseFloat(gameState.player2.ce.toFixed(2))} CE`;
-            DOM.player1CE.className = `text-4xl font-bold ${gameState.player1.ce >= 0 ? 'ce-positive' : 'ce-negative'}`;
-            DOM.player2CE.className = `text-4xl font-bold ${gameState.player2.ce >= 0 ? 'ce-positive' : 'ce-negative'}`;
-
+            
+            renderDashboardCards();
+            
             const combinedCE = gameState.player1.ce + gameState.player2.ce;
             DOM.totalCE.textContent = `Total: ${parseFloat(combinedCE.toFixed(2))} CE`;
             const treasure = combinedCE > 0 ? combinedCE / gameState.settings.conversionRate : 0;
             DOM.treasureValue.textContent = `R$ ${treasure.toFixed(2).replace('.', ',')}`;
-
-            document.getElementById('vetoPlayer1').disabled = gameState.player1.vetoUsed;
-            document.getElementById('vetoPlayer2').disabled = gameState.player2.vetoUsed;
 
             renderLog();
             renderMissionsTab();
@@ -362,6 +356,41 @@
 
         // --- FUNÇÕES DE LÓGICA DO JOGO ---
 
+        function calculateXPForLevel(level) {
+            if (level <= 1) return 0;
+            return Math.floor(1000 * Math.pow(1.2, level - 2));
+        }
+
+        function checkLevelUp(player) {
+            let xpNeeded = calculateXPForLevel(gameState[player].level + 1);
+            while (gameState[player].xp >= xpNeeded) {
+                gameState[player].level++;
+                gameState[player].xp -= xpNeeded;
+                xpNeeded = calculateXPForLevel(gameState[player].level + 1);
+                showToast(`${gameState[player].name} subiu para o Nível ${gameState[player].level}!`);
+            }
+        }
+
+        function recalculateLevels() {
+            ['player1', 'player2'].forEach(player => {
+                let totalXP = 0;
+                gameState.log.forEach(entry => {
+                    if (entry.player === player) {
+                        totalXP += entry.ceChange * 100;
+                    }
+                });
+                gameState[player].xp = 0;
+                gameState[player].level = 1;
+                let xpForLevelUp = calculateXPForLevel(2);
+                while (totalXP >= xpForLevelUp) {
+                    totalXP -= xpForLevelUp;
+                    gameState[player].level++;
+                    xpForLevelUp = calculateXPForLevel(gameState[player].level + 1);
+                }
+                gameState[player].xp = totalXP;
+            });
+        }
+
         function confirmAndAddCE(player, mission, ceChange, details = "") {
             const message = `Registrar <strong class="${ceChange >= 0 ? 'ce-positive' : 'ce-negative'}">${ceChange > 0 ? '+' : ''}${ceChange} CE</strong> para a missão "${mission.name}"?`;
             showConfirmation(message, () => {
@@ -372,6 +401,12 @@
         function addCE(player, mission, missionName, ceChange) {
             const playerName = gameState[player].name;
             gameState[player].ce += ceChange;
+            
+            const xpChange = ceChange * 100;
+            gameState[player].xp += xpChange;
+            if (gameState[player].xp < 0) gameState[player].xp = 0;
+            checkLevelUp(player);
+
             gameState.log.push({ id: crypto.randomUUID(), player, playerName, missionName, ceChange, timestamp: selectedDate.toISOString() });
             
             if (mission.trackStreak) {
@@ -387,6 +422,7 @@
                     const entry = gameState.log[entryIndex];
                     gameState[entry.player].ce -= entry.ceChange;
                     gameState.log.splice(entryIndex, 1);
+                    recalculateLevels();
                     checkAllStreaks();
                     showToast("Registro apagado com sucesso.");
                     saveStateToFirebase();
@@ -531,6 +567,44 @@
         }
 
         // --- FUNÇÕES DE RENDERIZAÇÃO ---
+
+        function getTitleForLevel(player, level) {
+            const titles = gameState.settings.titles[player];
+            let currentTitle = titles[1];
+            for (const levelKey in titles) {
+                if (level >= parseInt(levelKey)) {
+                    currentTitle = titles[levelKey];
+                }
+            }
+            return currentTitle;
+        }
+
+        function renderDashboardCards() {
+            ['player1', 'player2'].forEach(p => {
+                const player = gameState[p];
+                const card = document.getElementById(`${p}-dashboard-card`);
+                const color = p === 'player1' ? 'blue' : 'red';
+                const xpForNext = calculateXPForLevel(player.level + 1);
+                const xpProgress = xpForNext > 0 ? (player.xp / xpForNext) * 100 : 100;
+
+                card.innerHTML = `
+                    <div class="flex justify-center items-center gap-4">
+                        <h2 class="text-2xl font-cinzel text-${color}-400">${player.name}</h2>
+                        <span class="text-lg font-bold bg-gray-700 px-2 py-1 rounded">Nvl ${player.level}</span>
+                    </div>
+                    <p class="font-cinzel text-yellow-400 text-sm h-5">${getTitleForLevel(p, player.level)}</p>
+                    <p class="text-4xl font-bold ${player.ce >= 0 ? 'ce-positive' : 'ce-negative'}">${player.ce.toFixed(2)} CE</p>
+                    <div class="mt-2">
+                        <div class="xp-bar-container">
+                            <div class="xp-bar" style="width: ${xpProgress}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">${Math.floor(player.xp)} / ${xpForNext} XP</p>
+                    </div>
+                    <button id="veto${p.charAt(0).toUpperCase() + p.slice(1)}" class="btn btn-veto rounded-md px-4 py-2 mt-2 text-sm w-full" ${player.vetoUsed ? 'disabled' : ''}>Usar Carta Veto</button>
+                `;
+                card.querySelector('button').addEventListener('click', () => useVeto(p));
+            });
+        }
 
         function renderMissionsTab() {
             DOM.playerToggle.innerHTML = '';
@@ -682,6 +756,15 @@
                     <label class="block"><span class="text-gray-300">Taxa de Conversão (CE para R$ 1,00)</span><input type="number" id="conversionRate" value="${gameState.settings.conversionRate}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
                 </div>`;
             
+            let titlesHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Títulos dos Jogadores</h3>';
+            ['player1', 'player2'].forEach(p => {
+                titlesHTML += `<div class="mb-4"><p class="font-bold mb-2">${gameState[p].name}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+                for (const level in gameState.settings.titles[p]) {
+                    titlesHTML += `<label class="block"><span class="text-sm text-gray-400">Nível ${level}</span><input type="text" data-player="${p}" data-level="${level}" value="${gameState.settings.titles[p][level]}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>`;
+                }
+                titlesHTML += `</div></div>`;
+            });
+
             let missionsHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Valores das Missões</h3>';
             [...missionDefinitions.main, ...missionDefinitions.secondary].forEach(mission => {
                 missionsHTML += `<div class="mb-4 p-2 border-b border-gray-700"><p class="font-bold">${mission.name}</p>`;
@@ -695,7 +778,7 @@
                 missionsHTML += `</div>`;
             });
 
-            form.innerHTML = generalHTML + missionsHTML;
+            form.innerHTML = generalHTML + titlesHTML + missionsHTML;
             addSettingsListeners();
         }
 
@@ -713,6 +796,15 @@
             document.getElementById('conversionRate').addEventListener('change', e => updateSetting('settings.conversionRate', parseFloat(e.target.value) || 3));
             document.getElementById('player1Name').addEventListener('change', e => updateSetting('player1.name', e.target.value));
             document.getElementById('player2Name').addEventListener('change', e => updateSetting('player2.name', e.target.value));
+
+            document.querySelectorAll('#settings-form input[data-player]').forEach(input => {
+                input.addEventListener('change', e => {
+                    const { player, level } = e.target.dataset;
+                    gameState.settings.titles[player][level] = e.target.value;
+                    saveStateToFirebase();
+                    showToast("Título atualizado!");
+                });
+            });
 
             document.querySelectorAll('#settings-form input[data-mission-id]').forEach(input => {
                 input.addEventListener('change', e => {
@@ -969,10 +1061,8 @@
                 joinCampaignBtn: document.getElementById('join-campaign-btn'),
                 campaignIdDisplay: document.getElementById('campaign-id-display'),
                 viewingPlayerDisplay: document.getElementById('viewing-player-display'),
-                player1NameDisplay: document.getElementById('player1NameDisplay'),
-                player2NameDisplay: document.getElementById('player2NameDisplay'),
-                player1CE: document.getElementById('player1CE'),
-                player2CE: document.getElementById('player2CE'),
+                player1DashboardCard: document.getElementById('player1-dashboard-card'),
+                player2DashboardCard: document.getElementById('player2-dashboard-card'),
                 totalCE: document.getElementById('totalCE'),
                 treasureValue: document.getElementById('treasureValue'),
                 activityLog: document.getElementById('activity-log'),
@@ -1030,6 +1120,13 @@
                     showToast("ID da Campanha copiado!");
                 });
             });
+
+            DOM.viewingPlayerDisplay.addEventListener('click', () => {
+                viewingPlayer = viewingPlayer === 'player1' ? 'player2' : 'player1';
+                localStorage.setItem(`viewerId_${campaignId}`, viewingPlayer);
+                finishLoading();
+                showToast(`Visualizando como ${gameState[viewingPlayer].name}`);
+            });
             
             const today = new Date();
             DOM.dateSelector.value = today.toISOString().split('T')[0];
@@ -1047,9 +1144,6 @@
                     document.getElementById(tabId).classList.add('active');
                 });
             });
-
-            document.getElementById('vetoPlayer1').addEventListener('click', () => useVeto('player1'));
-            document.getElementById('vetoPlayer2').addEventListener('click', () => useVeto('player2'));
 
             document.getElementById('resetCycle').addEventListener('click', showCycleReport);
             DOM.cycleReportModal.confirmBtn.addEventListener('click', performCycleReset);
@@ -1076,4 +1170,3 @@
 
 </body>
 </html>
-�
