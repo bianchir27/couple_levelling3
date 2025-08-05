@@ -51,6 +51,10 @@
         .report-stat { background-color: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.5rem; text-align: center; }
         .xp-bar-container { background-color: #374151; border-radius: 9999px; overflow: hidden; height: 10px; }
         .xp-bar { background-color: #facc15; height: 100%; transition: width 0.5s ease-in-out; }
+        .trophy-card { opacity: 0.4; filter: grayscale(80%); transition: all 0.3s; }
+        .trophy-card.unlocked { opacity: 1; filter: grayscale(0%); }
+        .trophy-progress-bar-container { background-color: #4a4a4a; border-radius: 9999px; height: 8px; overflow: hidden; }
+        .trophy-progress-bar { background-color: #facc15; height: 100%; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -84,6 +88,7 @@
         <nav class="flex justify-center border-b border-gray-700 mb-8 text-sm md:text-base">
             <button class="tab-btn active" data-tab="dashboard">Painel</button>
             <button class="tab-btn" data-tab="missions">Missões</button>
+            <button class="tab-btn" data-tab="trophies">Troféus</button>
             <button class="tab-btn" data-tab="messages">Recados <span id="message-notification-dot" class="notification-dot"></span></button>
             <button class="tab-btn" data-tab="logs">Registros</button>
             <button class="tab-btn" data-tab="settings">Configurações</button>
@@ -132,6 +137,15 @@
                         <div id="player-toggle" class="flex rounded-lg bg-gray-800 p-1"></div>
                     </div>
                     <div id="mission-list-container"></div>
+                </div>
+            </div>
+
+            <div id="trophies" class="tab-content">
+                <div class="card rounded-lg p-6">
+                    <div class="flex justify-center mb-6">
+                        <div id="trophy-player-toggle" class="flex rounded-lg bg-gray-800 p-1"></div>
+                    </div>
+                    <div id="trophy-list-container"></div>
                 </div>
             </div>
 
@@ -239,7 +253,7 @@
                     { label: 'Perdeu 2kg+', value: 100 }, { label: 'Ganhou 2kg+', value: -150 }
                 ]},
                 { id: 'skincare', name: '✨ Pelis Sedosos', description: 'Rotina diária de skin care.', value: 1, type: 'simple' },
-                { id: 'pills', name: '💊 Pílulas do Sucesso', description: 'Tomar todos os remédios (heroína).', value: 0.3, type: 'simple', player: 2 },
+                { id: 'pills', name: '� Pílulas do Sucesso', description: 'Tomar todos os remédios (heroína).', value: 0.3, type: 'simple', player: 2 },
                 { id: 'veggies', name: '🥗 O Elixir de Vidaplenus', description: 'Adicionar legumes/frutas/vegetais.', value: 0.6, type: 'simple' },
                 { id: 'duolingo', name: '🦉 Legenduo', description: 'Realizar a ofensiva do Duolingo.', value: 0.1, type: 'simple' },
                 { id: 'reading', name: '📖 Leitura por Prazer', description: 'Ler por 20+ minutos.', value: 6, type: 'simple' },
@@ -254,14 +268,47 @@
         const achievements = [
             { id: 'willpower', name: 'Força de Vontade', reward: 75, requirement: '7 dias consecutivos de Academia.' },
             { id: 'healthy_month', name: 'Mês Saudável', reward: 100, requirement: 'Registro completo no Yazio e meta de calorias.' },
-            { id: 'combo', name: 'Combo de Hábitos', reward: 9, requirement: 'Completar 3+ missões secundárias no mesmo dia.' },
+            { id: 'combo', name: 'Combo de Hábitos', reward: 8, requirement: 'Completar 8+ missões secundárias no mesmo dia.', type: 'verified' },
             { id: 'gold_month', name: 'Mês de Ouro', reward: 250, requirement: 'Terminar o mês com saldo positivo nos gastos.' }
         ];
+        const trophyDefinitions = {
+            training_days: {
+                name: "Forja do Corpo",
+                icon: "🏋️",
+                tiers: [
+                    { req: 10, name: "Halter de Bronze", icon: "🥉" },
+                    { req: 15, name: "Anilha de Prata", icon: "🥈" },
+                    { req: 18, name: "Barra de Ouro", icon: "🥇" },
+                    { req: 22, name: "Corpo Divônico", icon: "🏆" }
+                ]
+            },
+            study_hours: {
+                name: "Tomo do Saber",
+                icon: "📚",
+                tiers: [
+                    { req: 10, name: "Pena de Bronze", icon: "🥉" },
+                    { req: 20, name: "Tomo de Prata", icon: "🥈" },
+                    { req: 30, name: "Biblioteca de Ouro", icon: "🥇" },
+                    { req: 40, name: "Mente Divônica", icon: "🏆" }
+                ]
+            },
+            willpower_days: {
+                name: "Força de Vontade",
+                icon: "🛡️",
+                tiers: [
+                    { req: 7, name: "Escudo de Bronze", icon: "🥉" },
+                    { req: 15, name: "Armadura de Prata", icon: "🥈" },
+                    { req: 21, name: "Fortaleza de Ouro", icon: "🥇" },
+                    { req: 28, name: "Vontade Divônica", icon: "🏆" }
+                ]
+            }
+        };
 
         // --- ESTADO DO JOGO ---
         let gameState = {};
         let activePlayer = 'player1'; // Para a aba de missões
         let viewingPlayer = null; // Para identificar o usuário atual
+        let activeTrophyPlayer = 'player1'; // Para a aba de troféus
         let selectedDate = new Date();
         let campaignId = null;
         let unsubscribe;
@@ -290,6 +337,9 @@
                     titles: {
                         player1: { 1: "Iniciante", 3: "Meio Divo", 6: "Divo Divinho", 9: "Divo Divônico", 12: "Soberano da Rotina" },
                         player2: { 1: "Iniciante", 3: "Meia Diva", 6: "Diva Divinha", 9: "Diva Divônica", 12: "Soberana da Rotina" }
+                    },
+                    xpLevels: {
+                        2: 2000, 3: 2800, 4: 3900, 5: 5500, 6: 7700, 7: 10800, 8: 15100, 9: 21100, 10: 29500, 11: 41300, 12: 57800
                     }
                 }
             };
@@ -323,6 +373,7 @@
             renderDailyScoreTable();
             renderAchievements();
             renderMessages();
+            renderTrophies();
         }
         
         function renderLog() {
@@ -358,7 +409,7 @@
 
         function calculateXPForLevel(level) {
             if (level <= 1) return 0;
-            return Math.floor(1000 * Math.pow(1.2, level - 2));
+            return gameState.settings.xpLevels[level] || 999999;
         }
 
         function checkLevelUp(player) {
@@ -668,16 +719,35 @@
                     <p class="text-xl font-bold ce-positive mt-2">+${ach.reward} CE</p>
                     <button class="btn btn-mission rounded-md px-4 py-2 mt-3 w-full text-sm">Resgatar</button>
                 `;
-                card.querySelector('button').onclick = () => claimAchievement(ach.name, ach.reward);
+                card.querySelector('button').onclick = () => claimAchievement(ach);
                 DOM.achievementsSection.appendChild(card);
             });
         }
 
-        function claimAchievement(name, reward) {
-            const player = prompt("Para qual jogador resgatar a conquista? (1 ou 2)");
-            const mission = { name: `Conquista: ${name}`, trackStreak: false };
-            if (player === '1') confirmAndAddCE('player1', mission, parseInt(reward));
-            else if (player === '2') confirmAndAddCE('player2', mission, parseInt(reward));
+        function claimAchievement(achievement) {
+            if (!viewingPlayer) return showToast("Erro: Jogador não identificado.", true);
+            const playerId = viewingPlayer;
+
+            if (achievement.type === 'verified' && achievement.id === 'combo') {
+                const todayString = new Date().toISOString().split('T')[0];
+                const secondaryMissionIds = missionDefinitions.secondary.map(m => m.id);
+                const secondaryLogsToday = gameState.log.filter(l => 
+                    l.player === playerId && 
+                    l.timestamp.startsWith(todayString) &&
+                    l.ceChange > 0 &&
+                    secondaryMissionIds.some(id => l.missionName.toLowerCase().includes(id.toLowerCase()))
+                );
+                
+                const completedCount = new Set(secondaryLogsToday.map(l => l.missionName.split('(')[0].trim())).size;
+
+                if (completedCount >= 8) {
+                    confirmAndAddCE(playerId, { name: achievement.name, trackStreak: false }, achievement.reward);
+                } else {
+                    showToast(`Faltam ${8 - completedCount} missões secundárias hoje para resgatar.`, true);
+                }
+            } else {
+                confirmAndAddCE(playerId, { name: achievement.name, trackStreak: false }, achievement.reward);
+            }
         }
 
         function renderStreaks() {
@@ -744,6 +814,72 @@
             tableHTML += '</tbody></table>';
             DOM.dailyScoreTable.innerHTML = tableHTML;
         }
+        
+        function renderTrophies() {
+            DOM.trophyPlayerToggle.innerHTML = '';
+            ['player1', 'player2'].forEach(p => {
+                const btn = document.createElement('button');
+                btn.textContent = gameState[p].name;
+                btn.className = `player-toggle-btn px-4 py-2 rounded-md ${activeTrophyPlayer === p ? 'active' : ''}`;
+                btn.onclick = () => {
+                    activeTrophyPlayer = p;
+                    renderTrophies();
+                };
+                DOM.trophyPlayerToggle.appendChild(btn);
+            });
+            renderTrophyListForPlayer(activeTrophyPlayer);
+        }
+
+        function renderTrophyListForPlayer(player) {
+            const container = DOM.trophyListContainer;
+            container.innerHTML = '';
+
+            const stats = {
+                training_days: new Set(gameState.log.filter(e => e.player === player && e.missionName.includes('Forja do Corpo') && e.ceChange > 0).map(e => e.timestamp.split('T')[0])).size,
+                study_hours: gameState.log.filter(e => e.player === player && e.missionName.includes('Tomo do Saber')).reduce((sum, e) => {
+                    const match = e.missionName.match(/\((\d+\.?\d*)h\)/);
+                    return sum + (match ? parseFloat(match[1]) : 0);
+                }, 0),
+                willpower_days: (() => {
+                    if (gameState.log.length === 0) return 0;
+                    const cycleStart = new Date(gameState.log.reduce((min, l) => new Date(l.timestamp) < min ? new Date(l.timestamp) : min, new Date()));
+                    const cycleEnd = new Date();
+                    const cycleDuration = getDayDiff(cycleEnd, cycleStart) + 1;
+                    const sweetDays = new Set(gameState.log.filter(e => e.player === player && e.missionName.includes('Feitiço Doceamargo')).map(e => e.timestamp.split('T')[0])).size;
+                    return cycleDuration - sweetDays;
+                })()
+            };
+
+            for (const key in trophyDefinitions) {
+                const trophy = trophyDefinitions[key];
+                const playerProgress = stats[key];
+
+                const section = document.createElement('div');
+                section.className = 'mb-8';
+                section.innerHTML = `<h3 class="text-2xl font-cinzel text-yellow-500 mb-4">${trophy.icon} ${trophy.name}</h3>`;
+
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4';
+
+                trophy.tiers.forEach(tier => {
+                    const unlocked = playerProgress >= tier.req;
+                    const progressPercent = Math.min((playerProgress / tier.req) * 100, 100);
+                    const card = document.createElement('div');
+                    card.className = `card trophy-card p-4 text-center ${unlocked ? 'unlocked' : ''}`;
+                    card.innerHTML = `
+                        <div class="text-5xl">${tier.icon}</div>
+                        <p class="font-bold mt-2">${tier.name}</p>
+                        <p class="text-sm text-gray-400">${playerProgress.toFixed(1)} / ${tier.req}</p>
+                        <div class="trophy-progress-bar-container mt-2">
+                            <div class="trophy-progress-bar" style="width: ${progressPercent}%"></div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+                section.appendChild(grid);
+                container.appendChild(section);
+            }
+        }
 
         function renderSettings() {
             const form = DOM.settingsForm;
@@ -765,6 +901,13 @@
                 titlesHTML += `</div></div>`;
             });
 
+            let xpLevelsHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Curva de Experiência</h3>';
+            xpLevelsHTML += '<div class="grid grid-cols-2 md:grid-cols-4 gap-4">';
+            for (const level in gameState.settings.xpLevels) {
+                xpLevelsHTML += `<label class="block"><span class="text-sm text-gray-400">XP para Nível ${level}</span><input type="number" data-level="${level}" value="${gameState.settings.xpLevels[level]}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>`;
+            }
+            xpLevelsHTML += '</div>';
+
             let missionsHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Valores das Missões</h3>';
             [...missionDefinitions.main, ...missionDefinitions.secondary].forEach(mission => {
                 missionsHTML += `<div class="mb-4 p-2 border-b border-gray-700"><p class="font-bold">${mission.name}</p>`;
@@ -778,7 +921,7 @@
                 missionsHTML += `</div>`;
             });
 
-            form.innerHTML = generalHTML + titlesHTML + missionsHTML;
+            form.innerHTML = generalHTML + titlesHTML + xpLevelsHTML + missionsHTML;
             addSettingsListeners();
         }
 
@@ -803,6 +946,15 @@
                     gameState.settings.titles[player][level] = e.target.value;
                     saveStateToFirebase();
                     showToast("Título atualizado!");
+                });
+            });
+
+            document.querySelectorAll('#settings-form input[data-level]').forEach(input => {
+                input.addEventListener('change', e => {
+                    const { level } = e.target.dataset;
+                    gameState.settings.xpLevels[level] = parseInt(e.target.value, 10);
+                    saveStateToFirebase();
+                    showToast("Curva de XP atualizada!");
                 });
             });
 
@@ -980,7 +1132,6 @@
                 return;
             }
 
-            // Calculate stats
             const trainedDays = new Set(log.filter(e => e.missionName.includes('Forja do Corpo') && e.ceChange > 0).map(e => e.timestamp.split('T')[0])).size;
             const studiedHours = log.filter(e => e.missionName.includes('Tomo do Saber')).reduce((sum, e) => {
                 const match = e.missionName.match(/\((\d+\.?\d*)h\)/);
@@ -1070,6 +1221,8 @@
                 settingsForm: document.getElementById('settings-form'),
                 toast: document.getElementById('toast'),
                 playerToggle: document.getElementById('player-toggle'),
+                trophyPlayerToggle: document.getElementById('trophy-player-toggle'),
+                trophyListContainer: document.getElementById('trophy-list-container'),
                 missionListContainer: document.getElementById('mission-list-container'),
                 player1Streaks: document.getElementById('player1-streaks'),
                 player2Streaks: document.getElementById('player2-streaks'),
@@ -1122,10 +1275,8 @@
             });
 
             DOM.viewingPlayerDisplay.addEventListener('click', () => {
-                viewingPlayer = viewingPlayer === 'player1' ? 'player2' : 'player1';
-                localStorage.setItem(`viewerId_${campaignId}`, viewingPlayer);
-                finishLoading();
-                showToast(`Visualizando como ${gameState[viewingPlayer].name}`);
+                DOM.loadingScreen.classList.remove('hidden');
+                promptForPlayerSelection();
             });
             
             const today = new Date();
