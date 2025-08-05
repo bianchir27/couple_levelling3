@@ -83,7 +83,6 @@
         <main>
             <!-- Conteúdo das abas -->
             <div id="dashboard" class="tab-content active">
-                <!-- Conteúdo do Painel -->
                 <section id="main-dashboard" class="card rounded-lg p-6 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center shadow-lg">
                     <div>
                         <h2 id="player1NameDisplay" class="text-2xl font-cinzel text-blue-400">Herói 1</h2>
@@ -123,7 +122,6 @@
             </div>
 
             <div id="missions" class="tab-content">
-                <!-- Conteúdo das Missões -->
                 <div class="card rounded-lg p-6">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                         <div class="flex-grow">
@@ -137,12 +135,9 @@
             </div>
 
             <div id="messages" class="tab-content">
-                 <!-- Conteúdo dos Recados -->
                  <div class="card rounded-lg p-4 flex flex-col h-[70vh]">
                     <h2 class="text-3xl font-cinzel text-center mb-4 text-gray-400">Mural de Recados</h2>
-                    <div id="message-list" class="flex-grow space-y-4 overflow-y-auto p-4">
-                        <!-- Mensagens serão inseridas aqui -->
-                    </div>
+                    <div id="message-list" class="flex-grow space-y-4 overflow-y-auto p-4"></div>
                     <div class="mt-4 flex gap-4 border-t border-gray-600 pt-4">
                         <textarea id="message-input" rows="1" placeholder="Escreva seu recado..." class="bg-gray-800 border border-gray-600 rounded-md p-2 w-full resize-none"></textarea>
                         <button id="send-message-btn" class="btn btn-mission bg-blue-700 hover:bg-blue-600 rounded-md px-6 py-2">Enviar</button>
@@ -151,7 +146,6 @@
             </div>
 
             <div id="logs" class="tab-content">
-                <!-- Conteúdo dos Registros -->
                 <section>
                     <h2 class="text-3xl font-cinzel text-center mb-4 text-gray-400">Livro de Registros</h2>
                     <div id="activity-log" class="card rounded-lg p-4 h-[50vh] overflow-y-auto shadow-inner"></div>
@@ -159,7 +153,6 @@
             </div>
 
             <div id="settings" class="tab-content">
-                <!-- Conteúdo das Configurações -->
                 <section class="card rounded-lg p-6">
                     <h2 class="text-3xl font-cinzel text-center mb-6 text-gray-400">Altar da Maleabilidade</h2>
                     <div id="settings-form"></div>
@@ -228,11 +221,28 @@
                 { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Ceder à tentação.', value: -40, type: 'simple', trackStreak: true }
             ],
             secondary: [
-                // ... (missões secundárias omitidas para brevidade, mas estão no código)
+                { id: 'stairs', name: '🦿 Stairway to Heaven', description: '20 min no simulador de escada.', value: 9, type: 'simple' },
+                { id: 'weight', name: '⚖️ A Maldição de Sobedesce', description: 'Resultado da pesagem semanal.', type: 'options', options: [
+                    { label: 'Perdeu 2kg+', value: 100 }, { label: 'Ganhou 2kg+', value: -150 }
+                ]},
+                { id: 'skincare', name: '✨ Pelis Sedosos', description: 'Rotina diária de skin care.', value: 1, type: 'simple' },
+                { id: 'pills', name: '💊 Pílulas do Sucesso', description: 'Tomar todos os remédios (heroína).', value: 0.3, type: 'simple', player: 2 },
+                { id: 'veggies', name: '🥗 O Elixir de Vidaplenus', description: 'Adicionar legumes/frutas/vegetais.', value: 0.6, type: 'simple' },
+                { id: 'duolingo', name: '🦉 Legenduo', description: 'Realizar a ofensiva do Duolingo.', value: 0.1, type: 'simple' },
+                { id: 'reading', name: '📖 Leitura por Prazer', description: 'Ler por 20+ minutos.', value: 6, type: 'simple' },
+                { id: 'hobby', name: '💡 Ofício do Sábio', description: '45+ min em hobby de aprendizado.', value: 9, type: 'simple' },
+                { id: 'water', name: '💧 Bênção da Hidratação', description: 'Beber 3 litros de água.', value: 3, type: 'simple' },
+                { id: 'healthy_meal', name: '🍱 Banquete Saudável', description: 'Comer apenas o planejado.', value: 6, type: 'simple' },
+                { id: 'sleep', name: '😴 Repouso do Herói', description: 'Dormir e acordar no horário.', value: 3, type: 'simple' },
+                { id: 'clean', name: '🧹 Ritual da Ordem', description: 'Ambiente principal organizado.', value: 6, type: 'simple' },
+                { id: 'planning', name: '🗓️ Oráculo Semanal', description: 'Planejar a semana juntos.', value: 24, type: 'simple' }
             ]
         };
         const achievements = [
-            // ... (conquistas omitidas para brevidade, mas estão no código)
+            { id: 'willpower', name: 'Força de Vontade', reward: 75, requirement: '7 dias consecutivos de Academia.' },
+            { id: 'healthy_month', name: 'Mês Saudável', reward: 100, requirement: 'Registro completo no Yazio e meta de calorias.' },
+            { id: 'combo', name: 'Combo de Hábitos', reward: 9, requirement: 'Completar 3+ missões secundárias no mesmo dia.' },
+            { id: 'gold_month', name: 'Mês de Ouro', reward: 250, requirement: 'Terminar o mês com saldo positivo nos gastos.' }
         ];
 
         // --- ESTADO DO JOGO ---
@@ -259,7 +269,7 @@
                 player1: { name: 'Herói 1', ce: 0, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
                 player2: { name: 'Heroína 2', ce: 0, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
                 log: [],
-                messages: [], // Nova propriedade para mensagens
+                messages: [],
                 settings: { conversionRate: 3, missions: missionSettings }
             };
         }
@@ -267,25 +277,498 @@
         // --- FUNÇÕES DE ESTADO E UI ---
         async function saveStateToFirebase() {
             if (!campaignId) return;
-            const campaignRef = doc(db, "campaigns", campaignId);
-            await setDoc(campaignRef, gameState);
+            try {
+                const campaignRef = doc(db, "campaigns", campaignId);
+                await setDoc(campaignRef, gameState);
+            } catch (error) {
+                console.error("Erro ao salvar no Firebase: ", error);
+                showToast("Falha ao sincronizar com o grimório.", true);
+            }
         }
 
         function updateUI() {
             if (!gameState || !gameState.player1) return;
-            // ... (código de atualização da UI principal)
+            DOM.player1NameDisplay.textContent = gameState.player1.name;
+            DOM.player2NameDisplay.textContent = gameState.player2.name;
+            DOM.player1CE.textContent = `${parseFloat(gameState.player1.ce.toFixed(2))} CE`;
+            DOM.player2CE.textContent = `${parseFloat(gameState.player2.ce.toFixed(2))} CE`;
+            DOM.player1CE.className = `text-4xl font-bold ${gameState.player1.ce >= 0 ? 'ce-positive' : 'ce-negative'}`;
+            DOM.player2CE.className = `text-4xl font-bold ${gameState.player2.ce >= 0 ? 'ce-positive' : 'ce-negative'}`;
+
+            const combinedCE = gameState.player1.ce + gameState.player2.ce;
+            DOM.totalCE.textContent = `Total: ${parseFloat(combinedCE.toFixed(2))} CE`;
+            const treasure = combinedCE > 0 ? combinedCE / gameState.settings.conversionRate : 0;
+            DOM.treasureValue.textContent = `R$ ${treasure.toFixed(2).replace('.', ',')}`;
+
+            document.getElementById('vetoPlayer1').disabled = gameState.player1.vetoUsed;
+            document.getElementById('vetoPlayer2').disabled = gameState.player2.vetoUsed;
+
             renderLog();
             renderMissionsTab();
             renderStreaks();
             renderDailyScoreTable();
             renderAchievements();
-            renderMessages(); // Renderiza as mensagens
+            renderMessages();
         }
         
-        // ... (outras funções de UI e lógica do jogo)
+        function renderLog() {
+            DOM.activityLog.innerHTML = '';
+            if (!gameState.log || gameState.log.length === 0) {
+                DOM.activityLog.innerHTML = '<p class="text-gray-500 text-center">A jornada começa agora...</p>';
+            } else {
+                [...gameState.log].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach((entry) => {
+                    const p = document.createElement('div');
+                    p.className = `flex justify-between items-center border-b border-gray-700 py-2 text-sm ${entry.ceChange >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                    const sign = entry.ceChange >= 0 ? '+' : '';
+                    p.innerHTML = `
+                        <div>
+                            <span class="font-bold">${entry.playerName}</span>: ${entry.missionName} (<span class="font-semibold">${sign}${parseFloat(entry.ceChange.toFixed(2))} CE</span>)
+                            <span class="block text-xs text-gray-500">${new Date(entry.timestamp).toLocaleString('pt-BR')}</span>
+                        </div>
+                        <button class="text-red-500 hover:text-red-300 font-bold text-xl px-2" onclick="window.deleteLogEntry('${entry.id}')">&times;</button>
+                    `;
+                    DOM.activityLog.appendChild(p);
+                });
+            }
+        }
 
-        // --- NOVAS FUNÇÕES DE MENSAGENS ---
+        function showToast(message, isError = false) {
+            DOM.toast.textContent = message;
+            DOM.toast.className = `toast show ${isError ? 'error' : ''}`;
+            setTimeout(() => {
+                DOM.toast.className = 'toast';
+            }, 3000);
+        }
 
+        // --- FUNÇÕES DE LÓGICA DO JOGO ---
+
+        function confirmAndAddCE(player, mission, ceChange, details = "") {
+            const message = `Registrar <strong class="${ceChange >= 0 ? 'ce-positive' : 'ce-negative'}">${ceChange > 0 ? '+' : ''}${ceChange} CE</strong> para a missão "${mission.name}"?`;
+            showConfirmation(message, () => {
+                addCE(player, mission, `${mission.name} ${details}`, ceChange);
+            });
+        }
+
+        function addCE(player, mission, missionName, ceChange) {
+            const playerName = gameState[player].name;
+            gameState[player].ce += ceChange;
+            gameState.log.push({ id: crypto.randomUUID(), player, playerName, missionName, ceChange, timestamp: selectedDate.toISOString() });
+            
+            if (mission.trackStreak) {
+                updateStreak(player, mission.id, ceChange, selectedDate);
+            }
+            saveStateToFirebase();
+        }
+
+        window.deleteLogEntry = function(entryId) {
+            showConfirmation("Tem certeza que deseja apagar este registro? A ação não pode ser desfeita.", () => {
+                const entryIndex = gameState.log.findIndex(e => e.id === entryId);
+                if (entryIndex > -1) {
+                    const entry = gameState.log[entryIndex];
+                    gameState[entry.player].ce -= entry.ceChange;
+                    gameState.log.splice(entryIndex, 1);
+                    checkAllStreaks();
+                    showToast("Registro apagado com sucesso.");
+                    saveStateToFirebase();
+                }
+            });
+        }
+
+        function getMissionValue(missionId, optionIndex = null) {
+            const mission = [...missionDefinitions.main, ...missionDefinitions.secondary].find(m => m.id === missionId);
+            if (!mission) return 0;
+            const setting = gameState.settings.missions[missionId];
+            if (mission.type === 'simple') return setting;
+            if (mission.type === 'options' && optionIndex !== null) return setting[optionIndex];
+            return 0;
+        }
+
+        function handleMissionClick(mission, player) {
+            if (mission.type === 'simple') {
+                confirmAndAddCE(player, mission, getMissionValue(mission.id));
+            } else {
+                openModal(mission, player);
+            }
+        }
+
+        function openModal(mission, player) {
+            const modal = DOM.missionModal;
+            modal.title.textContent = mission.name;
+            modal.body.innerHTML = '';
+
+            if (mission.type === 'options') {
+                mission.options.forEach((opt, index) => {
+                    const value = getMissionValue(mission.id, index);
+                    modal.body.innerHTML += `
+                        <label class="flex items-center p-2 rounded-md hover:bg-gray-700 cursor-pointer">
+                            <input type="radio" name="missionOption" value="${value}" data-label="${opt.label}" class="mr-3" ${index === 0 ? 'checked' : ''}>
+                            <span>${opt.label} (${value > 0 ? '+' : ''}${value} CE)</span>
+                        </label>`;
+                });
+            } else if (mission.type === 'input') {
+                modal.body.innerHTML = `
+                    <label class="block text-sm text-gray-400 mb-2">Informe a quantidade (${mission.unit}):</label>
+                    <input type="number" id="modalInput" class="bg-gray-800 border border-gray-600 rounded-md p-2 w-full" step="0.5" value="1">`;
+            }
+
+            modal.el.classList.remove('hidden');
+            modal.el.classList.add('flex');
+
+            modal.confirmBtn.onclick = () => {
+                if (mission.type === 'options') {
+                    const selectedRadio = document.querySelector('input[name="missionOption"]:checked');
+                    const selectedValue = parseFloat(selectedRadio.value);
+                    const details = `(${selectedRadio.dataset.label})`;
+                    confirmAndAddCE(player, mission, selectedValue, details);
+                } else if (mission.type === 'input') {
+                    const inputValue = parseFloat(document.getElementById('modalInput').value);
+                    if (isNaN(inputValue)) return;
+                    if (mission.id === 'study') {
+                        let ceChange = 0;
+                        if (inputValue > 1) ceChange = (inputValue - 1) * 20;
+                        else if (inputValue < 1 && inputValue >= 0) ceChange = -30;
+                        confirmAndAddCE(player, mission, ceChange, `(${inputValue}h)`);
+                    }
+                }
+                closeModal(modal.el);
+            };
+        }
+
+        function showConfirmation(message, onConfirmCallback) {
+            const modal = DOM.confirmModal;
+            modal.body.innerHTML = message;
+            modal.el.classList.remove('hidden');
+            modal.el.classList.add('flex');
+            
+            modal.confirmBtn.onclick = () => {
+                onConfirmCallback();
+                closeModal(modal.el);
+            };
+        }
+
+        function closeModal(modalElement) {
+            modalElement.classList.add('hidden');
+            modalElement.classList.remove('flex');
+        }
+
+        function useVeto(player) {
+            if (gameState[player].vetoUsed) return;
+            const lastNegativeLogIndex = gameState.log.map((l, i) => (l.player === player && l.ceChange < 0) ? i : -1).filter(i => i !== -1).pop();
+            
+            if (lastNegativeLogIndex !== undefined) {
+                const logEntry = gameState.log[lastNegativeLogIndex];
+                const message = `Usar a Carta Veto para anular a penalidade de ${logEntry.ceChange} CE da missão "${logEntry.missionName}"?`;
+                showConfirmation(message, () => {
+                    const reversedCE = -logEntry.ceChange;
+                    gameState[player].ce += reversedCE;
+                    gameState[player].vetoUsed = true;
+                    addCE(player, {trackStreak: false}, `📜 Carta Veto usada em "${logEntry.missionName}"`, reversedCE);
+                    showToast("Carta Veto usada com sucesso!");
+                });
+            } else {
+                showToast("Nenhuma penalidade encontrada para anular.", true);
+            }
+        }
+
+        function getDayDiff(date1, date2) {
+            const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+            const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+            return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+        }
+
+        function updateStreak(player, missionId, ceChange, dateOfAction) {
+            const streak = gameState[player].streaks[missionId];
+            if (!streak) return;
+
+            if (ceChange > 0) {
+                const lastCompletion = streak.lastCompletion ? new Date(streak.lastCompletion) : null;
+                if (lastCompletion && lastCompletion.toDateString() === dateOfAction.toDateString()) return;
+                
+                if (lastCompletion && getDayDiff(dateOfAction, lastCompletion) === 1) {
+                    streak.count++;
+                } else {
+                    streak.count = 1;
+                }
+                streak.lastCompletion = dateOfAction.toISOString();
+            } else {
+                streak.count = 0;
+            }
+        }
+
+        function checkAllStreaks() {
+            const today = new Date();
+            ['player1', 'player2'].forEach(player => {
+                for (const missionId in gameState[player].streaks) {
+                    const streak = gameState[player].streaks[missionId];
+                    if (streak.count > 0 && streak.lastCompletion) {
+                        const lastCompletionDate = new Date(streak.lastCompletion);
+                        if (getDayDiff(today, lastCompletionDate) > 1) {
+                            streak.count = 0;
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- FUNÇÕES DE RENDERIZAÇÃO ---
+
+        function renderMissionsTab() {
+            DOM.playerToggle.innerHTML = '';
+            ['player1', 'player2'].forEach(p => {
+                const btn = document.createElement('button');
+                btn.textContent = gameState[p].name;
+                btn.className = `player-toggle-btn px-4 py-2 rounded-md ${activePlayer === p ? 'active' : ''}`;
+                btn.onclick = () => {
+                    activePlayer = p;
+                    renderMissionsTab();
+                };
+                DOM.playerToggle.appendChild(btn);
+            });
+            renderMissionListForPlayer(activePlayer);
+        }
+
+        function renderMissionListForPlayer(player) {
+            const container = DOM.missionListContainer;
+            container.innerHTML = '';
+
+            const createList = (title, missions) => {
+                const section = document.createElement('div');
+                const titleEl = document.createElement('h3');
+                titleEl.className = 'text-xl font-cinzel text-yellow-500 mt-6 mb-3';
+                titleEl.textContent = title;
+                section.appendChild(titleEl);
+
+                const list = document.createElement('div');
+                list.className = 'space-y-2';
+                missions.forEach(m => {
+                    if (m.player && m.player !== (player === 'player1' ? 1 : 2)) return;
+                    const item = document.createElement('div');
+                    item.className = 'bg-gray-800 p-3 rounded-lg flex justify-between items-center';
+                    item.innerHTML = `
+                        <div>
+                            <p class="font-bold">${m.name}</p>
+                            <p class="text-sm text-gray-400">${m.description}</p>
+                        </div>
+                        <button class="btn btn-mission rounded-md px-4 py-2 ml-4 flex-shrink-0">Registrar</button>
+                    `;
+                    item.querySelector('button').onclick = () => handleMissionClick(m, player);
+                    list.appendChild(item);
+                });
+                section.appendChild(list);
+                return section;
+            };
+            
+            container.appendChild(createList('Missões Principais', missionDefinitions.main));
+            container.appendChild(createList('Missões Secundárias', missionDefinitions.secondary));
+        }
+
+        function renderAchievements() {
+            if (!DOM.achievementsSection) return;
+            DOM.achievementsSection.innerHTML = '';
+            achievements.forEach(ach => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-lg p-4 text-center';
+                card.innerHTML = `
+                    <h4 class="text-lg font-bold font-cinzel text-yellow-200">${ach.name}</h4>
+                    <p class="text-sm text-gray-400">${ach.requirement}</p>
+                    <p class="text-xl font-bold ce-positive mt-2">+${ach.reward} CE</p>
+                    <button class="btn btn-mission rounded-md px-4 py-2 mt-3 w-full text-sm">Resgatar</button>
+                `;
+                card.querySelector('button').onclick = () => claimAchievement(ach.name, ach.reward);
+                DOM.achievementsSection.appendChild(card);
+            });
+        }
+
+        function claimAchievement(name, reward) {
+            const player = prompt("Para qual jogador resgatar a conquista? (1 ou 2)");
+            const mission = { name: `Conquista: ${name}`, trackStreak: false };
+            if (player === '1') confirmAndAddCE('player1', mission, parseInt(reward));
+            else if (player === '2') confirmAndAddCE('player2', mission, parseInt(reward));
+        }
+
+        function renderStreaks() {
+            const renderPlayerStreaks = (player, container) => {
+                container.innerHTML = `<h4 class="text-lg font-cinzel text-center mb-2 ${player === 'player1' ? 'text-blue-400' : 'text-red-400'}">${gameState[player].name}</h4>`;
+                const streaksGrid = document.createElement('div');
+                streaksGrid.className = 'space-y-2';
+                
+                const trackableMissions = missionDefinitions.main.filter(m => m.trackStreak);
+                
+                trackableMissions.forEach(mission => {
+                    const streak = gameState[player].streaks[mission.id];
+                    const card = document.createElement('div');
+                    card.className = 'streak-card';
+                    card.innerHTML = `
+                        <span>${mission.name.split(' ')[0]}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">${streak.count || 0}</span>
+                            <span class="text-orange-400">${(streak.count || 0) > 0 ? '🔥' : '❄️'}</span>
+                        </div>
+                    `;
+                    streaksGrid.appendChild(card);
+                });
+                container.appendChild(streaksGrid);
+            };
+            renderPlayerStreaks('player1', DOM.player1Streaks);
+            renderPlayerStreaks('player2', DOM.player2Streaks);
+        }
+
+        function renderDailyScoreTable() {
+            const today = new Date();
+            let tableHTML = `<table class="w-full text-center text-sm"><thead><tr class="border-b border-gray-600">
+                <th class="py-2">Dia</th>
+                <th class="py-2 text-blue-400">${gameState.player1.name}</th>
+                <th class="py-2 text-red-400">${gameState.player2.name}</th>
+            </tr></thead><tbody>`;
+
+            const dailyScores = {};
+
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const dateString = d.toISOString().split('T')[0];
+                dailyScores[dateString] = { p1: 0, p2: 0, label: d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' }) };
+            }
+
+            gameState.log.forEach(entry => {
+                const dateString = entry.timestamp.split('T')[0];
+                if (dailyScores[dateString]) {
+                    if (entry.player === 'player1') dailyScores[dateString].p1 += entry.ceChange;
+                    else dailyScores[dateString].p2 += entry.ceChange;
+                }
+            });
+
+            for (const dateString in dailyScores) {
+                const scores = dailyScores[dateString];
+                tableHTML += `<tr class="border-b border-gray-700">
+                    <td class="py-2">${scores.label}</td>
+                    <td class="py-2 font-bold ${scores.p1 > 0 ? 'ce-positive' : scores.p1 < 0 ? 'ce-negative' : ''}">${scores.p1.toFixed(1)}</td>
+                    <td class="py-2 font-bold ${scores.p2 > 0 ? 'ce-positive' : scores.p2 < 0 ? 'ce-negative' : ''}">${scores.p2.toFixed(1)}</td>
+                </tr>`;
+            }
+
+            tableHTML += '</tbody></table>';
+            DOM.dailyScoreTable.innerHTML = tableHTML;
+        }
+
+        function renderSettings() {
+            const form = DOM.settingsForm;
+            form.innerHTML = '';
+            
+            let generalHTML = `<h3 class="text-xl font-cinzel text-yellow-500 mb-4">Jogadores & Conversão</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-end mb-6">
+                    <label class="block"><span class="text-gray-300">Nome do Herói 1</span><input type="text" id="player1Name" value="${gameState.player1.name}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                    <label class="block"><span class="text-gray-300">Nome da Heroína 2</span><input type="text" id="player2Name" value="${gameState.player2.name}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                    <label class="block"><span class="text-gray-300">Taxa de Conversão (CE para R$ 1,00)</span><input type="number" id="conversionRate" value="${gameState.settings.conversionRate}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                </div>`;
+            
+            let missionsHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Valores das Missões</h3>';
+            [...missionDefinitions.main, ...missionDefinitions.secondary].forEach(mission => {
+                missionsHTML += `<div class="mb-4 p-2 border-b border-gray-700"><p class="font-bold">${mission.name}</p>`;
+                if (mission.type === 'simple') {
+                    missionsHTML += `<div class="flex items-center gap-4"><label class="text-sm text-gray-400">Valor em CE:</label><input type="number" data-mission-id="${mission.id}" value="${getMissionValue(mission.id)}" class="bg-gray-800 border border-gray-600 rounded-md p-1 w-24"></div>`;
+                } else if (mission.type === 'options') {
+                    mission.options.forEach((opt, index) => {
+                        missionsHTML += `<div class="flex items-center gap-4 mt-1"><label class="text-sm text-gray-400 w-32">${opt.label}:</label><input type="number" data-mission-id="${mission.id}" data-option-index="${index}" value="${getMissionValue(mission.id, index)}" class="bg-gray-800 border border-gray-600 rounded-md p-1 w-24"></div>`;
+                    });
+                }
+                missionsHTML += `</div>`;
+            });
+
+            form.innerHTML = generalHTML + missionsHTML;
+            addSettingsListeners();
+        }
+
+        function addSettingsListeners() {
+            const updateSetting = (key, value) => {
+                const keys = key.split('.');
+                let obj = gameState;
+                for (let i = 0; i < keys.length - 1; i++) {
+                    obj = obj[keys[i]];
+                }
+                obj[keys[keys.length - 1]] = value;
+                saveStateToFirebase();
+            };
+
+            document.getElementById('conversionRate').addEventListener('change', e => updateSetting('settings.conversionRate', parseFloat(e.target.value) || 3));
+            document.getElementById('player1Name').addEventListener('change', e => updateSetting('player1.name', e.target.value));
+            document.getElementById('player2Name').addEventListener('change', e => updateSetting('player2.name', e.target.value));
+
+            document.querySelectorAll('#settings-form input[data-mission-id]').forEach(input => {
+                input.addEventListener('change', e => {
+                    const { missionId, optionIndex } = e.target.dataset;
+                    const value = parseFloat(e.target.value);
+                    if (optionIndex !== undefined) {
+                        gameState.settings.missions[missionId][parseInt(optionIndex)] = value;
+                    } else {
+                        gameState.settings.missions[missionId] = value;
+                    }
+                    saveStateToFirebase();
+                    showToast("Valor da missão atualizado!");
+                });
+            });
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Resumo da Campanha\r\n";
+            csvContent += `Jogador 1,${gameState.player1.name},${gameState.player1.ce.toFixed(2)} CE\r\n`;
+            csvContent += `Jogador 2,${gameState.player2.name},${gameState.player2.ce.toFixed(2)} CE\r\n`;
+            const combinedCE = gameState.player1.ce + gameState.player2.ce;
+            const treasure = combinedCE > 0 ? combinedCE / gameState.settings.conversionRate : 0;
+            csvContent += `Tesouro Total,"R$ ${treasure.toFixed(2)}"\r\n\r\n`;
+            csvContent += "Timestamp,Jogador,Missão,Alteração CE\r\n";
+            gameState.log.forEach(entry => {
+                const row = [ new Date(entry.timestamp).toLocaleString('pt-BR'), entry.playerName, `"${entry.missionName.replace(/"/g, '""')}"`, entry.ceChange.toFixed(2) ].join(',');
+                csvContent += row + "\r\n";
+            });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", "couple_levelling_log.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function joinCampaign(id) {
+            campaignId = id;
+            localStorage.setItem('coupleLevellingCampaignId', id);
+            DOM.campaignSelector.classList.add('hidden');
+            DOM.loaderContainer.classList.remove('hidden');
+
+            const campaignRef = doc(db, "campaigns", campaignId);
+            
+            if(unsubscribe) unsubscribe();
+
+            unsubscribe = onSnapshot(campaignRef, (doc) => {
+                const defaultState = getDefaultGameState();
+                if (doc.exists()) {
+                    const data = doc.data();
+                    gameState = { ...defaultState, ...data,
+                        player1: {...defaultState.player1, ...data.player1},
+                        player2: {...defaultState.player2, ...data.player2},
+                        settings: {...defaultState.settings, ...data.settings}
+                    };
+                } else {
+                    showToast("Campanha não encontrada. Criando uma nova...");
+                    gameState = defaultState;
+                    saveStateToFirebase();
+                }
+                checkAllStreaks();
+                checkForNewMessages();
+                renderSettings();
+                updateUI();
+                DOM.loadingScreen.classList.add('hidden');
+                DOM.appContainer.classList.remove('hidden');
+                DOM.campaignIdDisplay.textContent = `ID da Campanha: ${campaignId}`;
+            }, (error) => {
+                console.error("Erro ao conectar com o Firebase: ", error);
+                alert("Erro de conexão! Verifique se as regras do Firestore estão corretas e se a configuração do Firebase está no código.");
+                DOM.loaderContainer.classList.add('hidden');
+                DOM.campaignSelector.classList.remove('hidden');
+            });
+        }
+        
         function renderMessages() {
             DOM.messageList.innerHTML = '';
             if (!gameState.messages || gameState.messages.length === 0) {
@@ -308,7 +791,6 @@
                 messageWrapper.appendChild(bubble);
                 DOM.messageList.appendChild(messageWrapper);
             });
-            // Auto-scroll to bottom
             DOM.messageList.scrollTop = DOM.messageList.scrollHeight;
         }
 
@@ -338,9 +820,7 @@
 
             const lastMessage = gameState.messages[gameState.messages.length - 1];
             
-            // Assume there's a new message if we haven't checked before, or if the last message is new
             if (!lastChecked || new Date(lastMessage.timestamp) > new Date(lastChecked)) {
-                // Find the last message NOT sent by the current active player
                 const lastOtherPlayerMessage = [...gameState.messages].reverse().find(m => m.senderId !== activePlayer);
                 if (lastOtherPlayerMessage && (!lastChecked || new Date(lastOtherPlayerMessage.timestamp) > new Date(lastChecked))) {
                     DOM.messageNotificationDot.style.display = 'block';
@@ -352,16 +832,107 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             DOM = {
-                // ... (todos os outros elementos DOM)
+                loadingScreen: document.getElementById('loading-screen'),
+                appContainer: document.getElementById('app-container'),
+                campaignSelector: document.getElementById('campaign-selector'),
+                loaderContainer: document.getElementById('loader-container'),
+                campaignIdInput: document.getElementById('campaign-id-input'),
+                joinCampaignBtn: document.getElementById('join-campaign-btn'),
+                campaignIdDisplay: document.getElementById('campaign-id-display'),
+                player1NameDisplay: document.getElementById('player1NameDisplay'),
+                player2NameDisplay: document.getElementById('player2NameDisplay'),
+                player1CE: document.getElementById('player1CE'),
+                player2CE: document.getElementById('player2CE'),
+                totalCE: document.getElementById('totalCE'),
+                treasureValue: document.getElementById('treasureValue'),
+                activityLog: document.getElementById('activity-log'),
+                achievementsSection: document.getElementById('achievements-section'),
+                settingsForm: document.getElementById('settings-form'),
+                toast: document.getElementById('toast'),
+                playerToggle: document.getElementById('player-toggle'),
+                missionListContainer: document.getElementById('mission-list-container'),
+                player1Streaks: document.getElementById('player1-streaks'),
+                player2Streaks: document.getElementById('player2-streaks'),
+                dailyScoreTable: document.getElementById('daily-score-table'),
+                dateSelector: document.getElementById('date-selector'),
                 messageList: document.getElementById('message-list'),
                 messageInput: document.getElementById('message-input'),
                 sendMessageBtn: document.getElementById('send-message-btn'),
                 messageNotificationDot: document.getElementById('message-notification-dot'),
-                // ...
+                missionModal: {
+                    el: document.getElementById('missionModal'),
+                    title: document.getElementById('modalTitle'),
+                    body: document.getElementById('modalBody'),
+                    confirmBtn: document.getElementById('modalConfirm'),
+                    cancelBtn: document.getElementById('modalCancel')
+                },
+                confirmModal: {
+                    el: document.getElementById('confirmModal'),
+                    body: document.getElementById('confirmModalBody'),
+                    confirmBtn: document.getElementById('confirmModalConfirm'),
+                    cancelBtn: document.getElementById('confirmModalCancel')
+                }
             };
-            
-            // ... (código de inicialização existente)
 
+            const savedCampaignId = localStorage.getItem('coupleLevellingCampaignId');
+            if (savedCampaignId) {
+                DOM.campaignIdInput.value = savedCampaignId;
+                joinCampaign(savedCampaignId);
+            }
+
+            DOM.joinCampaignBtn.addEventListener('click', () => {
+                const id = DOM.campaignIdInput.value.trim();
+                if (id) {
+                    joinCampaign(id);
+                } else {
+                    showToast("Por favor, insira um ID para a campanha.", true);
+                }
+            });
+
+            DOM.campaignIdDisplay.addEventListener('click', () => {
+                navigator.clipboard.writeText(campaignId).then(() => {
+                    showToast("ID da Campanha copiado!");
+                });
+            });
+            
+            const today = new Date();
+            DOM.dateSelector.value = today.toISOString().split('T')[0];
+            DOM.dateSelector.addEventListener('change', () => {
+                const dateParts = DOM.dateSelector.value.split('-').map(Number);
+                selectedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            });
+
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    button.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+
+            document.getElementById('vetoPlayer1').addEventListener('click', () => useVeto('player1'));
+            document.getElementById('vetoPlayer2').addEventListener('click', () => useVeto('player2'));
+
+            document.getElementById('resetCycle').addEventListener('click', () => {
+                showConfirmation('Tem certeza que deseja iniciar um novo ciclo? Todos os Cristais de Esforço e Cartas Veto serão resetados.', () => {
+                    const p1Name = gameState.player1.name;
+                    const p2Name = gameState.player2.name;
+                    gameState = getDefaultGameState();
+                    gameState.player1.name = p1Name;
+                    gameState.player2.name = p2Name;
+                    saveStateToFirebase();
+                    showToast("Novo Ciclo Lunar iniciado!");
+                });
+            });
+            document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+
+            DOM.missionModal.cancelBtn.addEventListener('click', () => closeModal(DOM.missionModal.el));
+            DOM.missionModal.el.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(DOM.missionModal.el));
+            DOM.confirmModal.cancelBtn.addEventListener('click', () => closeModal(DOM.confirmModal.el));
+            DOM.confirmModal.el.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(DOM.confirmModal.el));
+            
             DOM.sendMessageBtn.addEventListener('click', sendMessage);
             DOM.messageInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -370,49 +941,12 @@
                 }
             });
 
-            // Listener para a aba de mensagens para limpar a notificação
             document.querySelector('button[data-tab="messages"]').addEventListener('click', () => {
                 DOM.messageNotificationDot.style.display = 'none';
                 localStorage.setItem(`lastChecked_${campaignId}`, new Date().toISOString());
             });
         });
 
-        async function joinCampaign(id) {
-            campaignId = id;
-            localStorage.setItem('coupleLevellingCampaignId', id);
-            DOM.campaignSelector.classList.add('hidden');
-            DOM.loaderContainer.classList.remove('hidden');
-
-            const campaignRef = doc(db, "campaigns", campaignId);
-            
-            if(unsubscribe) unsubscribe();
-
-            unsubscribe = onSnapshot(campaignRef, (doc) => {
-                const defaultState = getDefaultGameState();
-                if (doc.exists()) {
-                    const data = doc.data();
-                    // Merge with default to ensure new properties like 'messages' exist
-                    gameState = {
-                        ...defaultState,
-                        ...data,
-                        player1: {...defaultState.player1, ...data.player1},
-                        player2: {...defaultState.player2, ...data.player2},
-                        settings: {...defaultState.settings, ...data.settings}
-                    };
-                } else {
-                    showToast("Campanha não encontrada. Criando uma nova...");
-                    gameState = defaultState;
-                    saveStateToFirebase();
-                }
-                checkAllStreaks();
-                checkForNewMessages(); // Checa por novas mensagens
-                renderSettings();
-                updateUI();
-                DOM.loadingScreen.classList.add('hidden');
-                DOM.appContainer.classList.remove('hidden');
-                DOM.campaignIdDisplay.textContent = `ID da Campanha: ${campaignId}`;
-            });
-        }
     </script>
 
 </body>
