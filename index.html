@@ -47,6 +47,8 @@
         .message-sent { background-color: #1e40af; border-bottom-right-radius: 0.25rem; }
         .message-received { background-color: #374151; border-bottom-left-radius: 0.25rem; }
         .notification-dot { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; display: none; }
+        .report-card { background: linear-gradient(145deg, #2d2d2d, #1a1a1a); border: 2px solid #facc15; box-shadow: 0 0 20px rgba(250, 204, 21, 0.3); }
+        .report-stat { background-color: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.5rem; text-align: center; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -62,9 +64,7 @@
         </div>
         <div id="player-selector" class="card p-8 rounded-lg text-center hidden">
             <h2 class="text-2xl font-cinzel text-yellow-300 mb-4">Quem é você?</h2>
-            <div id="player-selection-buttons" class="flex flex-col gap-4">
-                <!-- Botões de seleção de jogador serão inseridos aqui -->
-            </div>
+            <div id="player-selection-buttons" class="flex flex-col gap-4"></div>
         </div>
         <div id="loader-container" class="text-center hidden">
             <div class="loader mx-auto"></div>
@@ -76,6 +76,7 @@
         <header class="text-center mb-6">
             <h1 class="text-4xl md:text-6xl font-cinzel font-bold text-yellow-300" style="text-shadow: 0 0 10px #facc15, 0 0 20px #facc15;">Couple Levelling</h1>
             <p id="campaign-id-display" class="text-sm font-mono text-gray-500 mt-2 cursor-pointer" title="Clique para copiar"></p>
+            <p id="viewing-player-display" class="text-sm text-gray-400 mt-1"></p>
         </header>
 
         <nav class="flex justify-center border-b border-gray-700 mb-8 text-sm md:text-base">
@@ -197,6 +198,18 @@
             </div>
         </div>
     </div>
+    <div id="cycleReportModal" class="fixed inset-0 z-50 items-center justify-center hidden">
+        <div class="modal-backdrop fixed inset-0"></div>
+        <div class="card report-card rounded-lg p-8 z-10 w-11/12 md:w-1/2 text-center">
+            <h3 class="text-3xl font-cinzel mb-2 text-yellow-300">Fim do Ciclo Lunar!</h3>
+            <p class="text-gray-400 mb-6">Aqui está o resumo da vossa jornada:</p>
+            <div id="cycleReportBody" class="text-left space-y-4 mb-8"></div>
+            <div class="flex justify-center gap-4 mt-6">
+                <button id="closeReportModalBtn" class="btn btn-mission rounded-md px-6 py-2">Fechar</button>
+                <button id="confirmResetBtn" class="btn btn-mission bg-red-700 hover:bg-red-600 border-red-500 rounded-md px-6 py-2">Confirmar e Iniciar Novo Ciclo</button>
+            </div>
+        </div>
+    </div>
     
     <div id="toast" class="toast"></div>
 
@@ -223,7 +236,7 @@
                 { id: 'gym', name: '🏋️ A Forja do Corpo', description: 'Treino na academia.', type: 'options', options: [
                     { label: 'Treino em Casal', value: 25 }, { label: 'Treino Individual', value: 20 }, { label: 'Faltou ao Treino', value: -40 }
                 ], trackStreak: true},
-                { id: 'study', name: '📚 O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
+                { id: 'study', name: '� O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
                 { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Ceder à tentação.', value: -40, type: 'simple', trackStreak: true }
             ],
             secondary: [
@@ -804,6 +817,7 @@
             DOM.loadingScreen.classList.add('hidden');
             DOM.appContainer.classList.remove('hidden');
             DOM.campaignIdDisplay.textContent = `ID da Campanha: ${campaignId}`;
+            DOM.viewingPlayerDisplay.textContent = `Visualizando como: ${gameState[viewingPlayer].name}`;
         }
 
         function renderMessages() {
@@ -866,6 +880,81 @@
             }
         }
 
+        function showCycleReport() {
+            const report = DOM.cycleReportModal;
+            const { log, player1, player2, settings } = gameState;
+            if (!log || log.length === 0) {
+                showToast("Nenhuma atividade registrada neste ciclo para gerar um relatório.", true);
+                return;
+            }
+
+            // Calculate stats
+            const trainedDays = new Set(log.filter(e => e.missionName.includes('Forja do Corpo') && e.ceChange > 0).map(e => e.timestamp.split('T')[0])).size;
+            const studiedHours = log.filter(e => e.missionName.includes('Tomo do Saber')).reduce((sum, e) => {
+                const match = e.missionName.match(/\((\d+\.?\d*)h\)/);
+                return sum + (match ? parseFloat(match[1]) : 0);
+            }, 0);
+            
+            const cycleStart = new Date(log.reduce((min, l) => new Date(l.timestamp) < min ? new Date(l.timestamp) : min, new Date()));
+            const cycleEnd = new Date();
+            const cycleDuration = getDayDiff(cycleEnd, cycleStart) + 1;
+            const sweetDays = new Set(log.filter(e => e.missionName.includes('Feitiço Doceamargo')).map(e => e.timestamp.split('T')[0])).size;
+            const sweetFreeDays = cycleDuration - sweetDays;
+
+            const secondaryMissionsCount = log.filter(e => {
+                return missionDefinitions.secondary.some(m => e.missionName.includes(m.name.split(' ')[1]));
+            }).length;
+
+            const p1CE = player1.ce.toFixed(2);
+            const p2CE = player2.ce.toFixed(2);
+            const total = (player1.ce + player2.ce).toFixed(2);
+            const treasure = (parseFloat(total) > 0 ? parseFloat(total) / settings.conversionRate : 0).toFixed(2);
+
+            report.body.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-lg mb-6">
+                    <div class="report-stat">
+                        <div class="text-2xl">🏋️</div>
+                        <div class="font-bold text-xl">${trainedDays}</div>
+                        <div class="text-sm text-gray-400">Dias Treinados</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="text-2xl">📚</div>
+                        <div class="font-bold text-xl">${studiedHours.toFixed(1)}</div>
+                        <div class="text-sm text-gray-400">Horas Estudadas</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="text-2xl">🛡️</div>
+                        <div class="font-bold text-xl">${sweetFreeDays}</div>
+                        <div class="text-sm text-gray-400">Dias de Vontade</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="text-2xl">📜</div>
+                        <div class="font-bold text-xl">${secondaryMissionsCount}</div>
+                        <div class="text-sm text-gray-400">Missões Cumpridas</div>
+                    </div>
+                </div>
+                <div class="space-y-2 border-t border-gray-600 pt-4">
+                    <div class="flex justify-between"><span class="font-bold text-blue-400">${player1.name}:</span><span>${p1CE} CE</span></div>
+                    <div class="flex justify-between"><span class="font-bold text-red-400">${player2.name}:</span><span>${p2CE} CE</span></div>
+                    <div class="flex justify-between text-xl font-bold border-t border-gray-700 pt-2 mt-2"><span class="text-yellow-400">Total:</span><span>${total} CE</span></div>
+                    <div class="flex justify-between text-2xl font-bold text-green-400 mt-4"><span>Tesouro da Sincronia:</span><span>R$ ${treasure.replace('.', ',')}</span></div>
+                </div>
+            `;
+            report.el.classList.remove('hidden');
+            report.el.classList.add('flex');
+        }
+
+        function performCycleReset() {
+            const p1Name = gameState.player1.name;
+            const p2Name = gameState.player2.name;
+            gameState = getDefaultGameState();
+            gameState.player1.name = p1Name;
+            gameState.player2.name = p2Name;
+            saveStateToFirebase();
+            showToast("Novo Ciclo Lunar iniciado!");
+            closeModal(DOM.cycleReportModal.el);
+        }
+
         // --- INICIALIZAÇÃO E EVENT LISTENERS ---
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -879,6 +968,7 @@
                 campaignIdInput: document.getElementById('campaign-id-input'),
                 joinCampaignBtn: document.getElementById('join-campaign-btn'),
                 campaignIdDisplay: document.getElementById('campaign-id-display'),
+                viewingPlayerDisplay: document.getElementById('viewing-player-display'),
                 player1NameDisplay: document.getElementById('player1NameDisplay'),
                 player2NameDisplay: document.getElementById('player2NameDisplay'),
                 player1CE: document.getElementById('player1CE'),
@@ -911,6 +1001,12 @@
                     body: document.getElementById('confirmModalBody'),
                     confirmBtn: document.getElementById('confirmModalConfirm'),
                     cancelBtn: document.getElementById('confirmModalCancel')
+                },
+                cycleReportModal: {
+                    el: document.getElementById('cycleReportModal'),
+                    body: document.getElementById('cycleReportBody'),
+                    confirmBtn: document.getElementById('confirmResetBtn'),
+                    closeBtn: document.getElementById('closeReportModalBtn')
                 }
             };
 
@@ -955,17 +1051,11 @@
             document.getElementById('vetoPlayer1').addEventListener('click', () => useVeto('player1'));
             document.getElementById('vetoPlayer2').addEventListener('click', () => useVeto('player2'));
 
-            document.getElementById('resetCycle').addEventListener('click', () => {
-                showConfirmation('Tem certeza que deseja iniciar um novo ciclo? Todos os Cristais de Esforço e Cartas Veto serão resetados.', () => {
-                    const p1Name = gameState.player1.name;
-                    const p2Name = gameState.player2.name;
-                    gameState = getDefaultGameState();
-                    gameState.player1.name = p1Name;
-                    gameState.player2.name = p2Name;
-                    saveStateToFirebase();
-                    showToast("Novo Ciclo Lunar iniciado!");
-                });
-            });
+            document.getElementById('resetCycle').addEventListener('click', showCycleReport);
+            DOM.cycleReportModal.confirmBtn.addEventListener('click', performCycleReset);
+            DOM.cycleReportModal.closeBtn.addEventListener('click', () => closeModal(DOM.cycleReportModal.el));
+            DOM.cycleReportModal.el.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(DOM.cycleReportModal.el));
+            
             document.getElementById('exportCSV').addEventListener('click', exportToCSV);
 
             DOM.missionModal.cancelBtn.addEventListener('click', () => closeModal(DOM.missionModal.el));
