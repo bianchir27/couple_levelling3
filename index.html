@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Couple Levelling: O Oráculo da Rotina</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
+        }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .card {
+            background-color: rgba(42, 39, 39, 0.8);
+            border: 1px solid #4a4a4a;
+            backdrop-filter: blur(5px);
+        }
+        .btn { transition: all 0.2s ease-in-out; border: 1px solid #5a5a5a; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .btn-mission { background-color: #3a3a3a; }
+        .btn-mission:hover { background-color: #4a4a4a; border-color: #7a7a7a; }
+        .btn-veto { background-color: #6d28d9; border-color: #8b5cf6; }
+        .btn-veto:disabled { background-color: #3730a3; border-color: #4f46e5; cursor: not-allowed; opacity: 0.5; }
+        .ce-positive { color: #22c55e; text-shadow: 0 0 5px #22c55e; }
+        .ce-negative { color: #ef4444; text-shadow: 0 0 5px #ef4444; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.7); }
+        .tab-btn { padding: 0.5rem 1rem; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab-btn.active { color: #facc15; border-bottom-color: #facc15; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .player-toggle-btn { border: 2px solid #4a4a4a; transition: all 0.3s; }
+        .player-toggle-btn.active { background-color: #facc15; color: #1a1a1a; border-color: #facc15; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #22c55e; color: white; padding: 1rem 2rem; border-radius: 0.5rem; z-index: 1000; opacity: 0; transition: opacity 0.5s, transform 0.5s; }
+        .toast.show { opacity: 1; transform: translate(-50%, -10px); }
+        .toast.error { background-color: #ef4444; }
+        .streak-card { background-color: rgba(255, 255, 255, 0.05); padding: 0.75rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: space-between; font-weight: bold; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #facc15; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Tela de Carregamento / ID da Campanha -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 bg-opacity-90 backdrop-blur-sm">
+        <div id="campaign-selector" class="card p-8 rounded-lg text-center">
+            <h2 class="text-3xl font-cinzel text-yellow-300 mb-4">Oráculo da Rotina</h2>
+            <p class="mb-6 text-gray-400">Insira o ID da Campanha para sincronizar os dados.</p>
+            <input type="text" id="campaign-id-input" placeholder="ID da Campanha" class="bg-gray-800 border border-gray-600 rounded-md p-2 w-full mb-4 text-center">
+            <button id="join-campaign-btn" class="btn btn-mission bg-green-700 hover:bg-green-600 w-full mb-2 py-2">Entrar / Criar Campanha</button>
+            <p class="text-xs text-gray-500">Crie um ID e compartilhe com o outro jogador.</p>
+        </div>
+        <div id="loader-container" class="text-center hidden">
+            <div class="loader mx-auto"></div>
+            <p class="mt-4 text-lg font-cinzel">Sincronizando com o grimório...</p>
+        </div>
+    </div>
+
+    <div id="app-container" class="container mx-auto max-w-7xl hidden">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl md:text-6xl font-cinzel font-bold text-yellow-300" style="text-shadow: 0 0 10px #facc15, 0 0 20px #facc15;">Couple Levelling</h1>
+            <p id="campaign-id-display" class="text-sm font-mono text-gray-500 mt-2 cursor-pointer" title="Clique para copiar"></p>
+        </header>
+
+        <nav class="flex justify-center border-b border-gray-700 mb-8 text-sm md:text-base">
+            <button class="tab-btn active" data-tab="dashboard">Painel</button>
+            <button class="tab-btn" data-tab="missions">Missões</button>
+            <button class="tab-btn" data-tab="logs">Registros</button>
+            <button class="tab-btn" data-tab="settings">Configurações</button>
+        </nav>
+
+        <main>
+            <!-- Conteúdo das abas aqui... -->
+            <div id="dashboard" class="tab-content active">
+                <section id="main-dashboard" class="card rounded-lg p-6 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center shadow-lg">
+                    <div>
+                        <h2 id="player1NameDisplay" class="text-2xl font-cinzel text-blue-400">Herói 1</h2>
+                        <p id="player1CE" class="text-4xl font-bold">0 CE</p>
+                        <button id="vetoPlayer1" class="btn btn-veto rounded-md px-4 py-2 mt-2 text-sm w-full">Usar Carta Veto</button>
+                    </div>
+                    <div class="border-t-2 md:border-t-0 md:border-x-2 border-gray-600 px-6">
+                        <h2 class="text-2xl font-cinzel text-yellow-400">Tesouro da Sincronia</h2>
+                        <p id="totalCE" class="text-2xl font-bold">Total: 0 CE</p>
+                        <p id="treasureValue" class="text-5xl font-bold text-green-400" style="text-shadow: 0 0 8px #4ade80;">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <h2 id="player2NameDisplay" class="text-2xl font-cinzel text-red-400">Heroína 2</h2>
+                        <p id="player2CE" class="text-4xl font-bold">0 CE</p>
+                        <button id="vetoPlayer2" class="btn btn-veto rounded-md px-4 py-2 mt-2 text-sm w-full">Usar Carta Veto</button>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div class="card rounded-lg p-6">
+                        <h3 class="text-2xl font-cinzel text-center mb-4">Ofensivas de Missões</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div id="player1-streaks"></div>
+                            <div id="player2-streaks"></div>
+                        </div>
+                    </div>
+                    <div class="card rounded-lg p-6">
+                        <h3 class="text-2xl font-cinzel text-center mb-4">CE por Dia (Últimos 7 Dias)</h3>
+                        <div id="daily-score-table" class="overflow-x-auto"></div>
+                    </div>
+                </section>
+                
+                <section>
+                    <h2 class="text-3xl font-cinzel text-center mb-4 text-yellow-300">Conquistas & Tesouros Raros</h2>
+                    <div id="achievements-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+                </section>
+            </div>
+
+            <div id="missions" class="tab-content">
+                <div class="card rounded-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <div class="flex-grow">
+                            <label for="date-selector" class="font-cinzel text-yellow-400 mr-2">Data do Registro:</label>
+                            <input type="date" id="date-selector" class="bg-gray-800 border border-gray-600 rounded-md p-2">
+                        </div>
+                        <div id="player-toggle" class="flex rounded-lg bg-gray-800 p-1"></div>
+                    </div>
+                    <div id="mission-list-container"></div>
+                </div>
+            </div>
+
+            <div id="logs" class="tab-content">
+                <section>
+                    <h2 class="text-3xl font-cinzel text-center mb-4 text-gray-400">Livro de Registros</h2>
+                    <div id="activity-log" class="card rounded-lg p-4 h-[50vh] overflow-y-auto shadow-inner"></div>
+                </section>
+            </div>
+
+            <div id="settings" class="tab-content">
+                <section class="card rounded-lg p-6">
+                    <h2 class="text-3xl font-cinzel text-center mb-6 text-gray-400">Altar da Maleabilidade</h2>
+                    <div id="settings-form"></div>
+                    <div class="mt-8 border-t border-gray-600 pt-6 text-center">
+                         <h3 class="text-xl font-cinzel text-yellow-500 mb-4">Controles da Campanha</h3>
+                         <div class="flex flex-col md:flex-row gap-4 justify-center">
+                            <button id="exportCSV" class="btn btn-mission bg-blue-800 hover:bg-blue-700 border-blue-600 text-white rounded-md px-6 py-2">Exportar para CSV</button>
+                            <button id="resetCycle" class="btn btn-mission bg-red-800 hover:bg-red-700 border-red-600 text-white rounded-md px-6 py-2">Iniciar Novo Ciclo Lunar</button>
+                         </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="missionModal" class="fixed inset-0 z-50 items-center justify-center hidden">
+        <div class="modal-backdrop fixed inset-0"></div>
+        <div class="card rounded-lg p-8 z-10 w-11/12 md:w-1/3">
+            <h3 id="modalTitle" class="text-2xl font-cinzel mb-4"></h3>
+            <div id="modalBody"></div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="modalCancel" class="btn btn-mission rounded-md px-4 py-2">Cancelar</button>
+                <button id="modalConfirm" class="btn btn-mission bg-green-700 hover:bg-green-600 border-green-500 rounded-md px-4 py-2">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    <div id="confirmModal" class="fixed inset-0 z-50 items-center justify-center hidden">
+        <div class="modal-backdrop fixed inset-0"></div>
+        <div class="card rounded-lg p-8 z-10 w-11/12 md:w-1/3 text-center">
+            <h3 id="confirmModalTitle" class="text-2xl font-cinzel mb-4">Confirmar Ação</h3>
+            <p id="confirmModalBody" class="text-lg mb-6"></p>
+            <div class="flex justify-center gap-4 mt-6">
+                <button id="confirmModalCancel" class="btn btn-mission rounded-md px-6 py-2">Cancelar</button>
+                <button id="confirmModalConfirm" class="btn btn-mission bg-green-700 hover:bg-green-600 border-green-500 rounded-md px-6 py-2">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBW-BnhPQ83tcORZk34d0O7zU0RM8dmrog",
+            authDomain: "couple-levelling.firebaseapp.com",
+            projectId: "couple-levelling",
+            storageBucket: "couple-levelling.appspot.com",
+            messagingSenderId: "388987681031",
+            appId: "1:388987681031:web:aebd2253e0fbb4c85d2da2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- CONFIGURAÇÃO INICIAL DO JOGO ---
+        const missionDefinitions = {
+            main: [
+                { id: 'gym', name: '🏋️ A Forja do Corpo', description: 'Treino na academia.', type: 'options', options: [
+                    { label: 'Treino em Casal', value: 25 }, { label: 'Treino Individual', value: 20 }, { label: 'Faltou ao Treino', value: -40 }
+                ], trackStreak: true},
+                { id: 'study', name: '📚 O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
+                { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Ceder à tentação.', value: -40, type: 'simple', trackStreak: true }
+            ],
+            secondary: [
+                { id: 'stairs', name: '🦿 Stairway to Heaven', description: '20 min no simulador de escada.', value: 9, type: 'simple' },
+                { id: 'weight', name: '⚖️ A Maldição de Sobedesce', description: 'Resultado da pesagem semanal.', type: 'options', options: [
+                    { label: 'Perdeu 2kg+', value: 100 }, { label: 'Ganhou 2kg+', value: -150 }
+                ]},
+                { id: 'skincare', name: '✨ Pelis Sedosos', description: 'Rotina diária de skin care.', value: 1, type: 'simple' },
+                { id: 'pills', name: '💊 Pílulas do Sucesso', description: 'Tomar todos os remédios (heroína).', value: 0.3, type: 'simple', player: 2 },
+                { id: 'veggies', name: '� O Elixir de Vidaplenus', description: 'Adicionar legumes/frutas/vegetais.', value: 0.6, type: 'simple' },
+                { id: 'duolingo', name: '🦉 Legenduo', description: 'Realizar a ofensiva do Duolingo.', value: 0.1, type: 'simple' },
+                { id: 'reading', name: '📖 Leitura por Prazer', description: 'Ler por 20+ minutos.', value: 6, type: 'simple' },
+                { id: 'hobby', name: '💡 Ofício do Sábio', description: '45+ min em hobby de aprendizado.', value: 9, type: 'simple' },
+                { id: 'water', name: '💧 Bênção da Hidratação', description: 'Beber 3 litros de água.', value: 3, type: 'simple' },
+                { id: 'healthy_meal', name: '🍱 Banquete Saudável', description: 'Comer apenas o planejado.', value: 6, type: 'simple' },
+                { id: 'sleep', name: '😴 Repouso do Herói', description: 'Dormir e acordar no horário.', value: 3, type: 'simple' },
+                { id: 'clean', name: '🧹 Ritual da Ordem', description: 'Ambiente principal organizado.', value: 6, type: 'simple' },
+                { id: 'planning', name: '🗓️ Oráculo Semanal', description: 'Planejar a semana juntos.', value: 24, type: 'simple' }
+            ]
+        };
+
+        const achievements = [
+            { id: 'willpower', name: 'Força de Vontade', reward: 75, requirement: '7 dias consecutivos de Academia.' },
+            { id: 'healthy_month', name: 'Mês Saudável', reward: 100, requirement: 'Registro completo no Yazio e meta de calorias.' },
+            { id: 'combo', name: 'Combo de Hábitos', reward: 9, requirement: 'Completar 3+ missões secundárias no mesmo dia.' },
+            { id: 'gold_month', name: 'Mês de Ouro', reward: 250, requirement: 'Terminar o mês com saldo positivo nos gastos.' }
+        ];
+
+        // --- ESTADO DO JOGO ---
+        let gameState = {};
+        let activePlayer = 'player1';
+        let selectedDate = new Date();
+        let campaignId = null;
+        let unsubscribe; // Firebase listener
+
+        // --- ELEMENTOS DO DOM (DECLARAÇÃO) ---
+        let DOM = {};
+
+        function getDefaultGameState() {
+            const missionSettings = {};
+            const streaks = {};
+            [...missionDefinitions.main, ...missionDefinitions.secondary].forEach(mission => {
+                if (mission.type === 'simple') missionSettings[mission.id] = mission.value;
+                else if (mission.type === 'options') missionSettings[mission.id] = mission.options.map(opt => opt.value);
+                if (mission.trackStreak) {
+                    streaks[mission.id] = { count: 0, lastCompletion: null };
+                }
+            });
+            return {
+                player1: { name: 'Herói 1', ce: 0, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
+                player2: { name: 'Heroína 2', ce: 0, vetoUsed: false, streaks: JSON.parse(JSON.stringify(streaks)) },
+                log: [],
+                settings: { conversionRate: 3, missions: missionSettings }
+            };
+        }
+
+        // --- FUNÇÕES DE ESTADO E UI ---
+
+        async function saveStateToFirebase() {
+            if (!campaignId) return;
+            const campaignRef = doc(db, "campaigns", campaignId);
+            await setDoc(campaignRef, gameState);
+        }
+
+        function updateUI() {
+            if (!gameState || !gameState.player1) return; // Guard clause
+            DOM.player1NameDisplay.textContent = gameState.player1.name;
+            DOM.player2NameDisplay.textContent = gameState.player2.name;
+            DOM.player1CE.textContent = `${parseFloat(gameState.player1.ce.toFixed(2))} CE`;
+            DOM.player2CE.textContent = `${parseFloat(gameState.player2.ce.toFixed(2))} CE`;
+            DOM.player1CE.className = `text-4xl font-bold ${gameState.player1.ce >= 0 ? 'ce-positive' : 'ce-negative'}`;
+            DOM.player2CE.className = `text-4xl font-bold ${gameState.player2.ce >= 0 ? 'ce-positive' : 'ce-negative'}`;
+
+            const combinedCE = gameState.player1.ce + gameState.player2.ce;
+            DOM.totalCE.textContent = `Total: ${parseFloat(combinedCE.toFixed(2))} CE`;
+            const treasure = combinedCE > 0 ? combinedCE / gameState.settings.conversionRate : 0;
+            DOM.treasureValue.textContent = `R$ ${treasure.toFixed(2).replace('.', ',')}`;
+
+            document.getElementById('vetoPlayer1').disabled = gameState.player1.vetoUsed;
+            document.getElementById('vetoPlayer2').disabled = gameState.player2.vetoUsed;
+
+            renderLog();
+            renderMissionsTab();
+            renderStreaks();
+            renderDailyScoreTable();
+            renderAchievements();
+        }
+
+        function renderLog() {
+            DOM.activityLog.innerHTML = '';
+            if (!gameState.log || gameState.log.length === 0) {
+                DOM.activityLog.innerHTML = '<p class="text-gray-500 text-center">A jornada começa agora...</p>';
+            } else {
+                [...gameState.log].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach((entry) => {
+                    const p = document.createElement('div');
+                    p.className = `flex justify-between items-center border-b border-gray-700 py-2 text-sm ${entry.ceChange >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                    const sign = entry.ceChange >= 0 ? '+' : '';
+                    p.innerHTML = `
+                        <div>
+                            <span class="font-bold">${entry.playerName}</span>: ${entry.missionName} (<span class="font-semibold">${sign}${parseFloat(entry.ceChange.toFixed(2))} CE</span>)
+                            <span class="block text-xs text-gray-500">${new Date(entry.timestamp).toLocaleString('pt-BR')}</span>
+                        </div>
+                        <button class="text-red-500 hover:text-red-300 font-bold text-xl px-2" onclick="window.deleteLogEntry('${entry.id}')">&times;</button>
+                    `;
+                    DOM.activityLog.appendChild(p);
+                });
+            }
+        }
+
+        function showToast(message, isError = false) {
+            DOM.toast.textContent = message;
+            DOM.toast.className = `toast show ${isError ? 'error' : ''}`;
+            setTimeout(() => {
+                DOM.toast.className = 'toast';
+            }, 3000);
+        }
+
+        // --- FUNÇÕES DE LÓGICA DO JOGO ---
+
+        function confirmAndAddCE(player, mission, ceChange, details = "") {
+            const message = `Registrar <strong class="${ceChange >= 0 ? 'ce-positive' : 'ce-negative'}">${ceChange > 0 ? '+' : ''}${ceChange} CE</strong> para a missão "${mission.name}"?`;
+            showConfirmation(message, () => {
+                addCE(player, mission, `${mission.name} ${details}`, ceChange);
+            });
+        }
+
+        function addCE(player, mission, missionName, ceChange) {
+            const playerName = gameState[player].name;
+            gameState[player].ce += ceChange;
+            gameState.log.push({ id: crypto.randomUUID(), player, playerName, missionName, ceChange, timestamp: selectedDate.toISOString() });
+            
+            if (mission.trackStreak) {
+                updateStreak(player, mission.id, ceChange, selectedDate);
+            }
+            saveStateToFirebase();
+        }
+
+        window.deleteLogEntry = function(entryId) {
+            showConfirmation("Tem certeza que deseja apagar este registro? A ação não pode ser desfeita.", () => {
+                const entryIndex = gameState.log.findIndex(e => e.id === entryId);
+                if (entryIndex > -1) {
+                    const entry = gameState.log[entryIndex];
+                    gameState[entry.player].ce -= entry.ceChange;
+                    gameState.log.splice(entryIndex, 1);
+                    checkAllStreaks();
+                    showToast("Registro apagado com sucesso.");
+                    saveStateToFirebase();
+                }
+            });
+        }
+
+        function getMissionValue(missionId, optionIndex = null) {
+            const mission = [...missionDefinitions.main, ...missionDefinitions.secondary].find(m => m.id === missionId);
+            if (!mission) return 0;
+            const setting = gameState.settings.missions[missionId];
+            if (mission.type === 'simple') return setting;
+            if (mission.type === 'options' && optionIndex !== null) return setting[optionIndex];
+            return 0;
+        }
+
+        function handleMissionClick(mission, player) {
+            if (mission.type === 'simple') {
+                confirmAndAddCE(player, mission, getMissionValue(mission.id));
+            } else {
+                openModal(mission, player);
+            }
+        }
+
+        function openModal(mission, player) {
+            const modal = DOM.missionModal;
+            modal.title.textContent = mission.name;
+            modal.body.innerHTML = '';
+
+            if (mission.type === 'options') {
+                mission.options.forEach((opt, index) => {
+                    const value = getMissionValue(mission.id, index);
+                    modal.body.innerHTML += `
+                        <label class="flex items-center p-2 rounded-md hover:bg-gray-700 cursor-pointer">
+                            <input type="radio" name="missionOption" value="${value}" data-label="${opt.label}" class="mr-3" ${index === 0 ? 'checked' : ''}>
+                            <span>${opt.label} (${value > 0 ? '+' : ''}${value} CE)</span>
+                        </label>`;
+                });
+            } else if (mission.type === 'input') {
+                modal.body.innerHTML = `
+                    <label class="block text-sm text-gray-400 mb-2">Informe a quantidade (${mission.unit}):</label>
+                    <input type="number" id="modalInput" class="bg-gray-800 border border-gray-600 rounded-md p-2 w-full" step="0.5" value="1">`;
+            }
+
+            modal.el.classList.remove('hidden');
+            modal.el.classList.add('flex');
+
+            modal.confirmBtn.onclick = () => {
+                if (mission.type === 'options') {
+                    const selectedRadio = document.querySelector('input[name="missionOption"]:checked');
+                    const selectedValue = parseFloat(selectedRadio.value);
+                    const details = `(${selectedRadio.dataset.label})`;
+                    confirmAndAddCE(player, mission, selectedValue, details);
+                } else if (mission.type === 'input') {
+                    const inputValue = parseFloat(document.getElementById('modalInput').value);
+                    if (isNaN(inputValue)) return;
+                    if (mission.id === 'study') {
+                        let ceChange = 0;
+                        if (inputValue > 1) ceChange = (inputValue - 1) * 20;
+                        else if (inputValue < 1 && inputValue >= 0) ceChange = -30;
+                        confirmAndAddCE(player, mission, ceChange, `(${inputValue}h)`);
+                    }
+                }
+                closeModal(modal.el);
+            };
+        }
+
+        function showConfirmation(message, onConfirmCallback) {
+            const modal = DOM.confirmModal;
+            modal.body.innerHTML = message;
+            modal.el.classList.remove('hidden');
+            modal.el.classList.add('flex');
+            
+            modal.confirmBtn.onclick = () => {
+                onConfirmCallback();
+                closeModal(modal.el);
+            };
+        }
+
+        function closeModal(modalElement) {
+            modalElement.classList.add('hidden');
+            modalElement.classList.remove('flex');
+        }
+
+        function useVeto(player) {
+            if (gameState[player].vetoUsed) return;
+            const lastNegativeLogIndex = gameState.log.map((l, i) => (l.player === player && l.ceChange < 0) ? i : -1).filter(i => i !== -1).pop();
+            
+            if (lastNegativeLogIndex !== undefined) {
+                const logEntry = gameState.log[lastNegativeLogIndex];
+                const message = `Usar a Carta Veto para anular a penalidade de ${logEntry.ceChange} CE da missão "${logEntry.missionName}"?`;
+                showConfirmation(message, () => {
+                    const reversedCE = -logEntry.ceChange;
+                    gameState[player].ce += reversedCE;
+                    gameState[player].vetoUsed = true;
+                    addCE(player, {trackStreak: false}, `📜 Carta Veto usada em "${logEntry.missionName}"`, reversedCE);
+                    showToast("Carta Veto usada com sucesso!");
+                });
+            } else {
+                showToast("Nenhuma penalidade encontrada para anular.", true);
+            }
+        }
+
+        function getDayDiff(date1, date2) {
+            const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+            const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+            return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+        }
+
+        function updateStreak(player, missionId, ceChange, dateOfAction) {
+            const streak = gameState[player].streaks[missionId];
+            if (!streak) return;
+
+            if (ceChange > 0) {
+                const lastCompletion = streak.lastCompletion ? new Date(streak.lastCompletion) : null;
+                if (lastCompletion && lastCompletion.toDateString() === dateOfAction.toDateString()) return;
+                
+                if (lastCompletion && getDayDiff(dateOfAction, lastCompletion) === 1) {
+                    streak.count++;
+                } else {
+                    streak.count = 1;
+                }
+                streak.lastCompletion = dateOfAction.toISOString();
+            } else {
+                streak.count = 0;
+            }
+        }
+
+        function checkAllStreaks() {
+            const today = new Date();
+            ['player1', 'player2'].forEach(player => {
+                for (const missionId in gameState[player].streaks) {
+                    const streak = gameState[player].streaks[missionId];
+                    if (streak.count > 0 && streak.lastCompletion) {
+                        const lastCompletionDate = new Date(streak.lastCompletion);
+                        if (getDayDiff(today, lastCompletionDate) > 1) {
+                            streak.count = 0;
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- FUNÇÕES DE RENDERIZAÇÃO ---
+
+        function renderMissionsTab() {
+            DOM.playerToggle.innerHTML = '';
+            ['player1', 'player2'].forEach(p => {
+                const btn = document.createElement('button');
+                btn.textContent = gameState[p].name;
+                btn.className = `player-toggle-btn px-4 py-2 rounded-md ${activePlayer === p ? 'active' : ''}`;
+                btn.onclick = () => {
+                    activePlayer = p;
+                    renderMissionsTab();
+                };
+                DOM.playerToggle.appendChild(btn);
+            });
+            renderMissionListForPlayer(activePlayer);
+        }
+
+        function renderMissionListForPlayer(player) {
+            const container = DOM.missionListContainer;
+            container.innerHTML = '';
+
+            const createList = (title, missions) => {
+                const section = document.createElement('div');
+                const titleEl = document.createElement('h3');
+                titleEl.className = 'text-xl font-cinzel text-yellow-500 mt-6 mb-3';
+                titleEl.textContent = title;
+                section.appendChild(titleEl);
+
+                const list = document.createElement('div');
+                list.className = 'space-y-2';
+                missions.forEach(m => {
+                    if (m.player && m.player !== (player === 'player1' ? 1 : 2)) return;
+                    const item = document.createElement('div');
+                    item.className = 'bg-gray-800 p-3 rounded-lg flex justify-between items-center';
+                    item.innerHTML = `
+                        <div>
+                            <p class="font-bold">${m.name}</p>
+                            <p class="text-sm text-gray-400">${m.description}</p>
+                        </div>
+                        <button class="btn btn-mission rounded-md px-4 py-2 ml-4 flex-shrink-0">Registrar</button>
+                    `;
+                    item.querySelector('button').onclick = () => handleMissionClick(m, player);
+                    list.appendChild(item);
+                });
+                section.appendChild(list);
+                return section;
+            };
+            
+            container.appendChild(createList('Missões Principais', missionDefinitions.main));
+            container.appendChild(createList('Missões Secundárias', missionDefinitions.secondary));
+        }
+
+        function renderAchievements() {
+            if (!DOM.achievementsSection) return;
+            DOM.achievementsSection.innerHTML = '';
+            achievements.forEach(ach => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-lg p-4 text-center';
+                card.innerHTML = `
+                    <h4 class="text-lg font-bold font-cinzel text-yellow-200">${ach.name}</h4>
+                    <p class="text-sm text-gray-400">${ach.requirement}</p>
+                    <p class="text-xl font-bold ce-positive mt-2">+${ach.reward} CE</p>
+                    <button class="btn btn-mission rounded-md px-4 py-2 mt-3 w-full text-sm">Resgatar</button>
+                `;
+                card.querySelector('button').onclick = () => claimAchievement(ach.name, ach.reward);
+                DOM.achievementsSection.appendChild(card);
+            });
+        }
+
+        function claimAchievement(name, reward) {
+            const player = prompt("Para qual jogador resgatar a conquista? (1 ou 2)");
+            const mission = { name: `Conquista: ${name}`, trackStreak: false };
+            if (player === '1') confirmAndAddCE('player1', mission, parseInt(reward));
+            else if (player === '2') confirmAndAddCE('player2', mission, parseInt(reward));
+        }
+
+        function renderStreaks() {
+            const renderPlayerStreaks = (player, container) => {
+                container.innerHTML = `<h4 class="text-lg font-cinzel text-center mb-2 ${player === 'player1' ? 'text-blue-400' : 'text-red-400'}">${gameState[player].name}</h4>`;
+                const streaksGrid = document.createElement('div');
+                streaksGrid.className = 'space-y-2';
+                
+                const trackableMissions = missionDefinitions.main.filter(m => m.trackStreak);
+                
+                trackableMissions.forEach(mission => {
+                    const streak = gameState[player].streaks[mission.id];
+                    const card = document.createElement('div');
+                    card.className = 'streak-card';
+                    card.innerHTML = `
+                        <span>${mission.name.split(' ')[0]}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">${streak.count || 0}</span>
+                            <span class="text-orange-400">${(streak.count || 0) > 0 ? '🔥' : '❄️'}</span>
+                        </div>
+                    `;
+                    streaksGrid.appendChild(card);
+                });
+                container.appendChild(streaksGrid);
+            };
+            renderPlayerStreaks('player1', DOM.player1Streaks);
+            renderPlayerStreaks('player2', DOM.player2Streaks);
+        }
+
+        function renderDailyScoreTable() {
+            const today = new Date();
+            let tableHTML = `<table class="w-full text-center text-sm"><thead><tr class="border-b border-gray-600">
+                <th class="py-2">Dia</th>
+                <th class="py-2 text-blue-400">${gameState.player1.name}</th>
+                <th class="py-2 text-red-400">${gameState.player2.name}</th>
+            </tr></thead><tbody>`;
+
+            const dailyScores = {};
+
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const dateString = d.toISOString().split('T')[0];
+                dailyScores[dateString] = { p1: 0, p2: 0, label: d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' }) };
+            }
+
+            gameState.log.forEach(entry => {
+                const dateString = entry.timestamp.split('T')[0];
+                if (dailyScores[dateString]) {
+                    if (entry.player === 'player1') dailyScores[dateString].p1 += entry.ceChange;
+                    else dailyScores[dateString].p2 += entry.ceChange;
+                }
+            });
+
+            for (const dateString in dailyScores) {
+                const scores = dailyScores[dateString];
+                tableHTML += `<tr class="border-b border-gray-700">
+                    <td class="py-2">${scores.label}</td>
+                    <td class="py-2 font-bold ${scores.p1 > 0 ? 'ce-positive' : scores.p1 < 0 ? 'ce-negative' : ''}">${scores.p1.toFixed(1)}</td>
+                    <td class="py-2 font-bold ${scores.p2 > 0 ? 'ce-positive' : scores.p2 < 0 ? 'ce-negative' : ''}">${scores.p2.toFixed(1)}</td>
+                </tr>`;
+            }
+
+            tableHTML += '</tbody></table>';
+            DOM.dailyScoreTable.innerHTML = tableHTML;
+        }
+
+        function renderSettings() {
+            const form = DOM.settingsForm;
+            form.innerHTML = '';
+            
+            let generalHTML = `<h3 class="text-xl font-cinzel text-yellow-500 mb-4">Jogadores & Conversão</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-end mb-6">
+                    <label class="block"><span class="text-gray-300">Nome do Herói 1</span><input type="text" id="player1Name" value="${gameState.player1.name}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                    <label class="block"><span class="text-gray-300">Nome da Heroína 2</span><input type="text" id="player2Name" value="${gameState.player2.name}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                    <label class="block"><span class="text-gray-300">Taxa de Conversão (CE para R$ 1,00)</span><input type="number" id="conversionRate" value="${gameState.settings.conversionRate}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                </div>`;
+            
+            let missionsHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Valores das Missões</h3>';
+            [...missionDefinitions.main, ...missionDefinitions.secondary].forEach(mission => {
+                missionsHTML += `<div class="mb-4 p-2 border-b border-gray-700"><p class="font-bold">${mission.name}</p>`;
+                if (mission.type === 'simple') {
+                    missionsHTML += `<div class="flex items-center gap-4"><label class="text-sm text-gray-400">Valor em CE:</label><input type="number" data-mission-id="${mission.id}" value="${getMissionValue(mission.id)}" class="bg-gray-800 border border-gray-600 rounded-md p-1 w-24"></div>`;
+                } else if (mission.type === 'options') {
+                    mission.options.forEach((opt, index) => {
+                        missionsHTML += `<div class="flex items-center gap-4 mt-1"><label class="text-sm text-gray-400 w-32">${opt.label}:</label><input type="number" data-mission-id="${mission.id}" data-option-index="${index}" value="${getMissionValue(mission.id, index)}" class="bg-gray-800 border border-gray-600 rounded-md p-1 w-24"></div>`;
+                    });
+                }
+                missionsHTML += `</div>`;
+            });
+
+            form.innerHTML = generalHTML + missionsHTML;
+            addSettingsListeners();
+        }
+
+        function addSettingsListeners() {
+            const updateSetting = (key, value) => {
+                const keys = key.split('.');
+                let obj = gameState;
+                for (let i = 0; i < keys.length - 1; i++) {
+                    obj = obj[keys[i]];
+                }
+                obj[keys[keys.length - 1]] = value;
+                saveStateToFirebase();
+            };
+
+            document.getElementById('conversionRate').addEventListener('change', e => updateSetting('settings.conversionRate', parseFloat(e.target.value) || 3));
+            document.getElementById('player1Name').addEventListener('change', e => updateSetting('player1.name', e.target.value));
+            document.getElementById('player2Name').addEventListener('change', e => updateSetting('player2.name', e.target.value));
+
+            document.querySelectorAll('#settings-form input[data-mission-id]').forEach(input => {
+                input.addEventListener('change', e => {
+                    const { missionId, optionIndex } = e.target.dataset;
+                    const value = parseFloat(e.target.value);
+                    if (optionIndex !== undefined) {
+                        gameState.settings.missions[missionId][parseInt(optionIndex)] = value;
+                    } else {
+                        gameState.settings.missions[missionId] = value;
+                    }
+                    saveStateToFirebase();
+                    showToast("Valor da missão atualizado!");
+                });
+            });
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Resumo da Campanha\r\n";
+            csvContent += `Jogador 1,${gameState.player1.name},${gameState.player1.ce.toFixed(2)} CE\r\n`;
+            csvContent += `Jogador 2,${gameState.player2.name},${gameState.player2.ce.toFixed(2)} CE\r\n`;
+            const combinedCE = gameState.player1.ce + gameState.player2.ce;
+            const treasure = combinedCE > 0 ? combinedCE / gameState.settings.conversionRate : 0;
+            csvContent += `Tesouro Total,"R$ ${treasure.toFixed(2)}"\r\n\r\n`;
+            csvContent += "Timestamp,Jogador,Missão,Alteração CE\r\n";
+            gameState.log.forEach(entry => {
+                const row = [ new Date(entry.timestamp).toLocaleString('pt-BR'), entry.playerName, `"${entry.missionName.replace(/"/g, '""')}"`, entry.ceChange.toFixed(2) ].join(',');
+                csvContent += row + "\r\n";
+            });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", "couple_levelling_log.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function joinCampaign(id) {
+            campaignId = id;
+            localStorage.setItem('coupleLevellingCampaignId', id);
+            DOM.campaignSelector.classList.add('hidden');
+            DOM.loaderContainer.classList.remove('hidden');
+
+            const campaignRef = doc(db, "campaigns", campaignId);
+            
+            if(unsubscribe) unsubscribe(); // Detach any old listener
+
+            unsubscribe = onSnapshot(campaignRef, (doc) => {
+                if (doc.exists()) {
+                    gameState = doc.data();
+                } else {
+                    showToast("Campanha não encontrada. Criando uma nova...");
+                    gameState = getDefaultGameState();
+                    saveStateToFirebase(); // Save the initial state
+                }
+                checkAllStreaks();
+                renderSettings(); // Render settings to populate inputs
+                updateUI();
+                DOM.loadingScreen.classList.add('hidden');
+                DOM.appContainer.classList.remove('hidden');
+                DOM.campaignIdDisplay.textContent = `ID da Campanha: ${campaignId}`;
+            });
+        }
+
+        // --- INICIALIZAÇÃO E EVENT LISTENERS ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            DOM = {
+                loadingScreen: document.getElementById('loading-screen'),
+                appContainer: document.getElementById('app-container'),
+                campaignSelector: document.getElementById('campaign-selector'),
+                loaderContainer: document.getElementById('loader-container'),
+                campaignIdInput: document.getElementById('campaign-id-input'),
+                joinCampaignBtn: document.getElementById('join-campaign-btn'),
+                campaignIdDisplay: document.getElementById('campaign-id-display'),
+                player1NameDisplay: document.getElementById('player1NameDisplay'),
+                player2NameDisplay: document.getElementById('player2NameDisplay'),
+                player1CE: document.getElementById('player1CE'),
+                player2CE: document.getElementById('player2CE'),
+                totalCE: document.getElementById('totalCE'),
+                treasureValue: document.getElementById('treasureValue'),
+                activityLog: document.getElementById('activity-log'),
+                achievementsSection: document.getElementById('achievements-section'),
+                settingsForm: document.getElementById('settings-form'),
+                toast: document.getElementById('toast'),
+                playerToggle: document.getElementById('player-toggle'),
+                missionListContainer: document.getElementById('mission-list-container'),
+                player1Streaks: document.getElementById('player1-streaks'),
+                player2Streaks: document.getElementById('player2-streaks'),
+                dailyScoreTable: document.getElementById('daily-score-table'),
+                dateSelector: document.getElementById('date-selector'),
+                missionModal: {
+                    el: document.getElementById('missionModal'),
+                    title: document.getElementById('modalTitle'),
+                    body: document.getElementById('modalBody'),
+                    confirmBtn: document.getElementById('modalConfirm'),
+                    cancelBtn: document.getElementById('modalCancel')
+                },
+                confirmModal: {
+                    el: document.getElementById('confirmModal'),
+                    body: document.getElementById('confirmModalBody'),
+                    confirmBtn: document.getElementById('confirmModalConfirm'),
+                    cancelBtn: document.getElementById('confirmModalCancel')
+                }
+            };
+
+            const savedCampaignId = localStorage.getItem('coupleLevellingCampaignId');
+            if (savedCampaignId) {
+                DOM.campaignIdInput.value = savedCampaignId;
+                joinCampaign(savedCampaignId);
+            }
+
+            DOM.joinCampaignBtn.addEventListener('click', () => {
+                const id = DOM.campaignIdInput.value.trim();
+                if (id) {
+                    joinCampaign(id);
+                } else {
+                    showToast("Por favor, insira um ID para a campanha.", true);
+                }
+            });
+
+            DOM.campaignIdDisplay.addEventListener('click', () => {
+                navigator.clipboard.writeText(campaignId).then(() => {
+                    showToast("ID da Campanha copiado!");
+                });
+            });
+            
+            const today = new Date();
+            DOM.dateSelector.value = today.toISOString().split('T')[0];
+            DOM.dateSelector.addEventListener('change', () => {
+                const dateParts = DOM.dateSelector.value.split('-').map(Number);
+                selectedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            });
+
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    button.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+
+            document.getElementById('vetoPlayer1').addEventListener('click', () => useVeto('player1'));
+            document.getElementById('vetoPlayer2').addEventListener('click', () => useVeto('player2'));
+
+            document.getElementById('resetCycle').addEventListener('click', () => {
+                showConfirmation('Tem certeza que deseja iniciar um novo ciclo? Todos os Cristais de Esforço e Cartas Veto serão resetados.', () => {
+                    const p1Name = gameState.player1.name;
+                    const p2Name = gameState.player2.name;
+                    gameState = getDefaultGameState();
+                    gameState.player1.name = p1Name;
+                    gameState.player2.name = p2Name;
+                    saveStateToFirebase();
+                    showToast("Novo Ciclo Lunar iniciado!");
+                });
+            });
+            document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+
+            DOM.missionModal.cancelBtn.addEventListener('click', () => closeModal(DOM.missionModal.el));
+            DOM.missionModal.el.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(DOM.missionModal.el));
+            DOM.confirmModal.cancelBtn.addEventListener('click', () => closeModal(DOM.confirmModal.el));
+            DOM.confirmModal.el.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(DOM.confirmModal.el));
+        });
+
+    </script>
+
+</body>
+</html>
+�
