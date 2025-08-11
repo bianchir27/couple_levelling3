@@ -174,6 +174,7 @@
                     <div class="mt-8 border-t border-gray-600 pt-6 text-center">
                          <h3 class="text-xl font-cinzel text-yellow-500 mb-4">Controles da Campanha</h3>
                          <div class="flex flex-col md:flex-row gap-4 justify-center">
+                            <button id="changeCampaignBtn" class="btn btn-mission bg-yellow-700 hover:bg-yellow-600 border-yellow-500 text-white rounded-md px-6 py-2">Trocar Campanha</button>
                             <button id="exportCSV" class="btn btn-mission bg-blue-800 hover:bg-blue-700 border-blue-600 text-white rounded-md px-6 py-2">Exportar para CSV</button>
                             <button id="resetCycle" class="btn btn-mission bg-red-800 hover:bg-red-700 border-red-600 text-white rounded-md px-6 py-2">Iniciar Novo Ciclo Lunar</button>
                          </div>
@@ -245,7 +246,9 @@
                     { label: 'Treino em Casal', value: 25 }, { label: 'Treino Individual', value: 20 }, { label: 'Faltou ao Treino', value: -40 }
                 ], trackStreak: true},
                 { id: 'study', name: '📚 O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
-                { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Ceder à tentação.', value: -40, type: 'simple', trackStreak: true }
+                { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Resistir ou ceder à tentação.', type: 'options', options: [
+                    { label: 'Resisti à Vontade', value: 6 }, { label: 'Cedi à Tentação', value: -40 }
+                ], trackStreak: true }
             ],
             secondary: [
                 { id: 'stairs', name: '🦿 Stairway to Heaven', description: '20 min no simulador de escada.', value: 9, type: 'simple' },
@@ -253,7 +256,7 @@
                     { label: 'Perdeu 2kg+', value: 100 }, { label: 'Ganhou 2kg+', value: -150 }
                 ]},
                 { id: 'skincare', name: '✨ Pelis Sedosos', description: 'Rotina diária de skin care.', value: 1, type: 'simple' },
-                { id: 'pills', name: '� Pílulas do Sucesso', description: 'Tomar todos os remédios (heroína).', value: 0.3, type: 'simple', player: 2 },
+                { id: 'pills', name: '🩹 Pílulas do Sucesso', description: 'Tomar todos os remédios (heroína).', value: 0.3, type: 'simple', player: 2 },
                 { id: 'veggies', name: '🥗 O Elixir de Vidaplenus', description: 'Adicionar legumes/frutas/vegetais.', value: 0.6, type: 'simple' },
                 { id: 'duolingo', name: '🦉 Legenduo', description: 'Realizar a ofensiva do Duolingo.', value: 0.1, type: 'simple' },
                 { id: 'reading', name: '📖 Leitura por Prazer', description: 'Ler por 20+ minutos.', value: 6, type: 'simple' },
@@ -268,7 +271,7 @@
         const achievements = [
             { id: 'willpower', name: 'Força de Vontade', reward: 75, requirement: '7 dias consecutivos de Academia.' },
             { id: 'healthy_month', name: 'Mês Saudável', reward: 100, requirement: 'Registro completo no Yazio e meta de calorias.' },
-            { id: 'combo', name: 'Combo de Hábitos', reward: 8, requirement: 'Completar 8+ missões secundárias no mesmo dia.', type: 'verified' },
+            { id: 'combo', name: 'Combo de Hábitos', reward: 8, requirement: 'Completar 8+ missões secundárias no mesmo dia.'},
             { id: 'gold_month', name: 'Mês de Ouro', reward: 250, requirement: 'Terminar o mês com saldo positivo nos gastos.' }
         ];
         const trophyDefinitions = {
@@ -333,13 +336,14 @@
                 messages: [],
                 settings: { 
                     conversionRate: 4, 
+                    xpConversionRate: 100,
                     missions: missionSettings,
                     titles: {
                         player1: { 1: "Iniciante", 3: "Meio Divo", 6: "Divo Divinho", 9: "Divo Divônico", 12: "Soberano da Rotina" },
                         player2: { 1: "Iniciante", 3: "Meia Diva", 6: "Diva Divinha", 9: "Diva Divônica", 12: "Soberana da Rotina" }
                     },
                     xpLevels: {
-                        2: 2000, 3: 2800, 4: 3900, 5: 5500, 6: 7700, 7: 10800, 8: 15100, 9: 21100, 10: 29500, 11: 41300, 12: 57800
+                        2: 3000, 3: 4500, 4: 6750, 5: 10125, 6: 15188, 7: 22781, 8: 34172, 9: 51258, 10: 76887, 11: 115330, 12: 172995
                     }
                 }
             };
@@ -427,9 +431,12 @@
                 let totalXP = 0;
                 gameState.log.forEach(entry => {
                     if (entry.player === player) {
-                        totalXP += entry.ceChange * 100;
+                        totalXP += entry.ceChange * gameState.settings.xpConversionRate;
                     }
                 });
+                
+                if(totalXP < 0) totalXP = 0;
+
                 gameState[player].xp = 0;
                 gameState[player].level = 1;
                 let xpForLevelUp = calculateXPForLevel(2);
@@ -453,7 +460,7 @@
             const playerName = gameState[player].name;
             gameState[player].ce += ceChange;
             
-            const xpChange = ceChange * 100;
+            const xpChange = ceChange * gameState.settings.xpConversionRate;
             gameState[player].xp += xpChange;
             if (gameState[player].xp < 0) gameState[player].xp = 0;
             checkLevelUp(player);
@@ -727,27 +734,7 @@
         function claimAchievement(achievement) {
             if (!viewingPlayer) return showToast("Erro: Jogador não identificado.", true);
             const playerId = viewingPlayer;
-
-            if (achievement.type === 'verified' && achievement.id === 'combo') {
-                const todayString = new Date().toISOString().split('T')[0];
-                const secondaryMissionIds = missionDefinitions.secondary.map(m => m.id);
-                const secondaryLogsToday = gameState.log.filter(l => 
-                    l.player === playerId && 
-                    l.timestamp.startsWith(todayString) &&
-                    l.ceChange > 0 &&
-                    secondaryMissionIds.some(id => l.missionName.toLowerCase().includes(id.toLowerCase()))
-                );
-                
-                const completedCount = new Set(secondaryLogsToday.map(l => l.missionName.split('(')[0].trim())).size;
-
-                if (completedCount >= 8) {
-                    confirmAndAddCE(playerId, { name: achievement.name, trackStreak: false }, achievement.reward);
-                } else {
-                    showToast(`Faltam ${8 - completedCount} missões secundárias hoje para resgatar.`, true);
-                }
-            } else {
-                confirmAndAddCE(playerId, { name: achievement.name, trackStreak: false }, achievement.reward);
-            }
+            confirmAndAddCE(playerId, { name: achievement.name, trackStreak: false }, achievement.reward);
         }
 
         function renderStreaks() {
@@ -765,8 +752,8 @@
                     card.innerHTML = `
                         <span>${mission.name.split(' ')[0]}</span>
                         <div class="flex items-center gap-2">
-                            <span class="text-xl">${streak.count || 0}</span>
-                            <span class="text-orange-400">${(streak.count || 0) > 0 ? '🔥' : '❄️'}</span>
+                            <span class="text-xl">${streak?.count || 0}</span>
+                            <span class="text-orange-400">${(streak?.count || 0) > 0 ? '🔥' : '❄️'}</span>
                         </div>
                     `;
                     streaksGrid.appendChild(card);
@@ -835,8 +822,8 @@
             container.innerHTML = '';
 
             const stats = {
-                training_days: new Set(gameState.log.filter(e => e.player === player && e.missionName.includes('Forja do Corpo') && e.ceChange > 0).map(e => e.timestamp.split('T')[0])).size,
-                study_hours: gameState.log.filter(e => e.player === player && e.missionName.includes('Tomo do Saber')).reduce((sum, e) => {
+                training_days: new Set(gameState.log.filter(e => e.player === player && e.missionName.startsWith('🏋️ A Forja do Corpo') && e.ceChange > 0).map(e => e.timestamp.split('T')[0])).size,
+                study_hours: gameState.log.filter(e => e.player === player && e.missionName.startsWith('📚 O Tomo do Saber')).reduce((sum, e) => {
                     const match = e.missionName.match(/\((\d+\.?\d*)h\)/);
                     return sum + (match ? parseFloat(match[1]) : 0);
                 }, 0),
@@ -845,7 +832,7 @@
                     const cycleStart = new Date(gameState.log.reduce((min, l) => new Date(l.timestamp) < min ? new Date(l.timestamp) : min, new Date()));
                     const cycleEnd = new Date();
                     const cycleDuration = getDayDiff(cycleEnd, cycleStart) + 1;
-                    const sweetDays = new Set(gameState.log.filter(e => e.player === player && e.missionName.includes('Feitiço Doceamargo')).map(e => e.timestamp.split('T')[0])).size;
+                    const sweetDays = new Set(gameState.log.filter(e => e.player === player && e.missionName.startsWith('🍫 O Feitiço Doceamargo') && e.ceChange < 0).map(e => e.timestamp.split('T')[0])).size;
                     return cycleDuration - sweetDays;
                 })()
             };
@@ -890,6 +877,7 @@
                     <label class="block"><span class="text-gray-300">Nome do Herói 1</span><input type="text" id="player1Name" value="${gameState.player1.name}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
                     <label class="block"><span class="text-gray-300">Nome da Heroína 2</span><input type="text" id="player2Name" value="${gameState.player2.name}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
                     <label class="block"><span class="text-gray-300">Taxa de Conversão (CE para R$ 1,00)</span><input type="number" id="conversionRate" value="${gameState.settings.conversionRate}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
+                    <label class="block"><span class="text-gray-300">Taxa de Conversão (CE para XP)</span><input type="number" id="xpConversionRate" value="${gameState.settings.xpConversionRate}" class="mt-1 bg-gray-800 border border-gray-600 rounded-md p-2 w-full"></label>
                 </div>`;
             
             let titlesHTML = '<h3 class="text-xl font-cinzel text-yellow-500 mb-4 border-t border-gray-600 pt-4">Títulos dos Jogadores</h3>';
@@ -937,6 +925,7 @@
             };
 
             document.getElementById('conversionRate').addEventListener('change', e => updateSetting('settings.conversionRate', parseFloat(e.target.value) || 3));
+            document.getElementById('xpConversionRate').addEventListener('change', e => updateSetting('settings.xpConversionRate', parseFloat(e.target.value) || 100));
             document.getElementById('player1Name').addEventListener('change', e => updateSetting('player1.name', e.target.value));
             document.getElementById('player2Name').addEventListener('change', e => updateSetting('player2.name', e.target.value));
 
@@ -1009,9 +998,12 @@
                 if (doc.exists()) {
                     const data = doc.data();
                     gameState = { ...defaultState, ...data,
-                        player1: {...defaultState.player1, ...data.player1},
-                        player2: {...defaultState.player2, ...data.player2},
-                        settings: {...defaultState.settings, ...data.settings}
+                        player1: {...defaultState.player1, ...data.player1, streaks: {...defaultState.player1.streaks, ...(data.player1?.streaks || {})}},
+                        player2: {...defaultState.player2, ...data.player2, streaks: {...defaultState.player2.streaks, ...(data.player2?.streaks || {})}},
+                        settings: {...defaultState.settings, ...data.settings,
+                            titles: {...defaultState.settings.titles, ...(data.settings?.titles || {})},
+                            xpLevels: {...defaultState.settings.xpLevels, ...(data.settings?.xpLevels || {})}
+                        }
                     };
                 } else {
                     showToast("Campanha não encontrada. Criando uma nova...");
@@ -1276,6 +1268,7 @@
 
             DOM.viewingPlayerDisplay.addEventListener('click', () => {
                 DOM.loadingScreen.classList.remove('hidden');
+                DOM.appContainer.classList.add('hidden');
                 promptForPlayerSelection();
             });
             
@@ -1297,6 +1290,17 @@
             });
 
             document.getElementById('resetCycle').addEventListener('click', showCycleReport);
+            document.getElementById('changeCampaignBtn').addEventListener('click', () => {
+                if (unsubscribe) unsubscribe();
+                campaignId = null;
+                viewingPlayer = null;
+                localStorage.removeItem('coupleLevellingCampaignId');
+                DOM.appContainer.classList.add('hidden');
+                DOM.loadingScreen.classList.remove('hidden');
+                DOM.campaignSelector.classList.remove('hidden');
+                DOM.loaderContainer.classList.add('hidden');
+                DOM.campaignIdInput.value = '';
+            });
             DOM.cycleReportModal.confirmBtn.addEventListener('click', performCycleReset);
             DOM.cycleReportModal.closeBtn.addEventListener('click', () => closeModal(DOM.cycleReportModal.el));
             DOM.cycleReportModal.el.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(DOM.cycleReportModal.el));
