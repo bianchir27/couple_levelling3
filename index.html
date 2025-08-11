@@ -243,11 +243,11 @@
         const missionDefinitions = {
             main: [
                 { id: 'gym', name: '🏋️ A Forja do Corpo', description: 'Treino na academia.', type: 'options', options: [
-                    { label: 'Treino em Casal', value: 25 }, { label: 'Treino Individual', value: 20 }, { label: 'Faltou ao Treino', value: -40 }
+                    { label: 'Treino em Casal', value: 25 }, { label: 'Treino Individual', value: 20 }, { label: 'Dia Livre', value: 0 }, { label: 'Faltou ao Treino', value: -40 }
                 ], trackStreak: true},
                 { id: 'study', name: '📚 O Tomo do Saber', description: 'Sessão de estudos.', type: 'input', unit: 'horas', trackStreak: true },
                 { id: 'chocolate', name: '🍫 O Feitiço Doceamargo', description: 'Resistir ou ceder à tentação.', type: 'options', options: [
-                    { label: 'Resisti à Vontade', value: 6 }, { label: 'Cedi à Tentação', value: -40 }
+                    { label: 'Resisti à Vontade', value: 6 }, { label: 'Dia Livre', value: 0 }, { label: 'Cedi à Tentação', value: -40 }
                 ], trackStreak: true }
             ],
             secondary: [
@@ -629,7 +629,7 @@
                         
                         const wasSuccessful = dayLogs.some(l => {
                             if (mission.id === 'study') return l.ceChange >= 0;
-                            return l.ceChange > 0;
+                            return l.ceChange > 0 || l.missionName.includes('(Dia Livre)');
                         });
 
                         if (wasSuccessful) {
