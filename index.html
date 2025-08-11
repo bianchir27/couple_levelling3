@@ -468,7 +468,7 @@
             gameState.log.push({ id: crypto.randomUUID(), player, playerName, missionName, ceChange, timestamp: selectedDate.toISOString() });
             
             if (mission.trackStreak) {
-                updateStreak(player, mission.id, ceChange, selectedDate);
+                recalculateStreaks();
             }
             saveStateToFirebase();
         }
@@ -481,7 +481,7 @@
                     gameState[entry.player].ce -= entry.ceChange;
                     gameState.log.splice(entryIndex, 1);
                     recalculateLevels();
-                    checkAllStreaks();
+                    recalculateStreaks();
                     showToast("Registro apagado com sucesso.");
                     saveStateToFirebase();
                 }
@@ -539,7 +539,7 @@
                     if (isNaN(inputValue)) return;
                     if (mission.id === 'study') {
                         let ceChange = 0;
-                        if (inputValue > 1) ceChange = (inputValue - 1) * 20;
+                        if (inputValue >= 1) ceChange = (inputValue - 1) * 20;
                         else if (inputValue < 1 && inputValue >= 0) ceChange = -30;
                         confirmAndAddCE(player, mission, ceChange, `(${inputValue}h)`);
                     }
@@ -583,6 +583,12 @@
                 showToast("Nenhuma penalidade encontrada para anular.", true);
             }
         }
+        
+        function getSaoPauloDate(date) {
+            const offset = -3; // UTC-3 for Brasília time
+            const localDate = new Date(date.getTime() + (offset * 3600 * 1000));
+            return localDate;
+        }
 
         function getDayDiff(date1, date2) {
             const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
@@ -590,37 +596,64 @@
             return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
         }
 
-        function updateStreak(player, missionId, ceChange, dateOfAction) {
-            const streak = gameState[player].streaks[missionId];
-            if (!streak) return;
-
-            if (ceChange > 0) {
-                const lastCompletion = streak.lastCompletion ? new Date(streak.lastCompletion) : null;
-                if (lastCompletion && lastCompletion.toDateString() === dateOfAction.toDateString()) return;
-                
-                if (lastCompletion && getDayDiff(dateOfAction, lastCompletion) === 1) {
-                    streak.count++;
-                } else {
-                    streak.count = 1;
-                }
-                streak.lastCompletion = dateOfAction.toISOString();
-            } else {
-                streak.count = 0;
-            }
-        }
-
-        function checkAllStreaks() {
-            const today = new Date();
+        function recalculateStreaks() {
             ['player1', 'player2'].forEach(player => {
-                for (const missionId in gameState[player].streaks) {
-                    const streak = gameState[player].streaks[missionId];
-                    if (streak.count > 0 && streak.lastCompletion) {
-                        const lastCompletionDate = new Date(streak.lastCompletion);
-                        if (getDayDiff(today, lastCompletionDate) > 1) {
-                            streak.count = 0;
+                const trackableMissions = missionDefinitions.main.filter(m => m.trackStreak);
+                
+                trackableMissions.forEach(mission => {
+                    const missionLogs = gameState.log.filter(l => 
+                        l.player === player && 
+                        l.missionName.startsWith(mission.name.split(' ')[0])
+                    );
+
+                    if (missionLogs.length === 0) {
+                        gameState[player].streaks[mission.id].count = 0;
+                        return;
+                    }
+
+                    const dailyLogs = {};
+                    missionLogs.forEach(l => {
+                        const dateStr = new Date(l.timestamp).toLocaleDateString('sv-SE');
+                        if (!dailyLogs[dateStr]) dailyLogs[dateStr] = [];
+                        dailyLogs[dateStr].push(l);
+                    });
+
+                    const sortedDates = Object.keys(dailyLogs).sort();
+                    
+                    let currentStreak = 0;
+                    let lastStreakDate = null;
+
+                    for (let i = sortedDates.length - 1; i >= 0; i--) {
+                        const dateStr = sortedDates[i];
+                        const dayLogs = dailyLogs[dateStr];
+                        
+                        const wasSuccessful = dayLogs.some(l => {
+                            if (mission.id === 'study') return l.ceChange >= 0;
+                            return l.ceChange > 0;
+                        });
+
+                        if (wasSuccessful) {
+                            const currentDate = new Date(dateStr + 'T12:00:00Z');
+                            if (lastStreakDate === null) {
+                                currentStreak = 1;
+                            } else if (getDayDiff(lastStreakDate, currentDate) === 1) {
+                                currentStreak++;
+                            } else {
+                                break;
+                            }
+                            lastStreakDate = currentDate;
+                        } else {
+                            break;
                         }
                     }
-                }
+
+                    const today = getSaoPauloDate(new Date());
+                    if (lastStreakDate && getDayDiff(today, lastStreakDate) > 1) {
+                        currentStreak = 0;
+                    }
+
+                    gameState[player].streaks[mission.id].count = currentStreak;
+                });
             });
         }
 
@@ -1046,7 +1079,7 @@
         }
 
         function finishLoading() {
-            checkAllStreaks();
+            recalculateStreaks();
             checkForNewMessages();
             renderSettings();
             updateUI();
